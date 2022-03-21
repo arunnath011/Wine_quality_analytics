@@ -1,0 +1,72 @@
+---
+title: "Lab 2 Lightning Ridge Proposal"
+author: "Luc R, Andrew B, Vish S, Arun N"
+date: '2022-03-21'
+output: pdf_document
+---
+
+```{r load packages, echo=FALSE, message=FALSE}
+
+install.packages('lmtest')
+install.packages('patchwork')
+install.packages('sandwich')
+
+library(tidyverse)
+library(magrittr)
+library(ggplot2)
+library(patchwork)
+library(sandwich)
+library(lmtest)
+library(gridExtra)
+```
+
+
+```{r}
+df_red <- read.csv(file = 'winequality-red.csv', sep=';')
+df_white <- read.csv(file = 'winequality-white.csv', sep=';')
+headers <- c('Fixed Acidity', 'Volatile Acidity','Citric Acid', 'Residual Sugars', 'chlorides', 'Free Sulfur Dioxide','Total Sulfur Dioxides', 'Density','pH', 'Sulphates', 'Alcohol' )
+
+df_red$Wine_Type = 'Red'
+df_white$Wine_Type = 'White'
+
+all_wine = rbind(df_red, df_white)
+```
+
+```{r}
+summary(all_wine)
+
+fig1 <- ggplot(data = all_wine, aes(x=fixed.acidity)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 1: Distribution of \n Fixed Acidity', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig2 <- ggplot(data = all_wine, aes(x=volatile.acidity)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 2: Distribution of\n Volatile Acidity', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig3 <- ggplot(data = all_wine, aes(x=citric.acid)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 3: Distribution of Citric Acid', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig4 <- ggplot(data = all_wine, aes(x=residual.sugar)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 4: Distribution of \nResidual Sugars', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig5 <- ggplot(data = all_wine, aes(x=chlorides)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 5: Distribution of Chlorides', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig6 <- ggplot(data = all_wine, aes(x=free.sulfur.dioxide)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 6: Distribution of Free \n Sulfur Dioxide', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig7 <- ggplot(data = all_wine, aes(x=total.sulfur.dioxide)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 7: Distribution of \nTotal Sulfur Dioxide', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig8 <- ggplot(data = all_wine, aes(x=pH)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 8: Distribution of pH Balance', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig9 <- ggplot(data = all_wine, aes(x=density)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 9: Distribution of Density', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig10 <- ggplot(data = all_wine, aes(x=sulphates)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 10: Distribution of Sulphates', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig11 <- ggplot(data = all_wine, aes(x=alcohol)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 11: Distribution of Alcohol', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+fig12 <- ggplot(data = all_wine, aes(x=quality)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 12: Distribution of\n Wine Quality', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+
+
+grid.arrange(fig1, fig2,fig3, fig4, fig5, fig6, ncol = 2, nrow = 3)
+grid.arrange(fig7, fig8, fig9, fig10, fig11, fig12, ncol = 2, nrow = 3)
+```
+
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
