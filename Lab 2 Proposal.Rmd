@@ -57,7 +57,7 @@ fig10 <- ggplot(data = all_wine, aes(x=sulphates)) + geom_histogram(aes(y=..dens
 
 fig11 <- ggplot(data = all_wine, aes(x=alcohol)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 11: Distribution of Alcohol', x = "") + geom_density(alpha=0.2, fill="#FF6666")
 
-fig12 <- ggplot(data = all_wine, aes(x=quality)) + geom_histogram(aes(y=..density..),colour = 'red', fill = 'gray') + labs(title = 'Figure 12: Distribution of\n Wine Quality', x = "") + geom_density(alpha=0.2, fill="#FF6666")
+fig12 <- ggplot(data = all_wine, aes(x=quality)) + geom_histogram(colour = 'blue', fill = 'gray', bins = 8 + labs(title = 'Figure 12: Distribution of\n Wine Quality', x = "") + geom_density(alpha=0.2, fill="#FF6666")
 
 
 grid.arrange(fig1, fig2,fig3, fig4, fig5, fig6, ncol = 2, nrow = 3)
@@ -65,8 +65,17 @@ grid.arrange(fig7, fig8, fig9, fig10, fig11, fig12, ncol = 2, nrow = 3)
 ```
 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+install.packages('corrplot')
+library(corrplot)
+
+
+all_numeric_vals = subset(all_wine,select=-c(Wine_Type))
+cor_tab <- cor(all_numeric_vals)
+round(cor_tab, 2)
+
+corrplot(cor_tab, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, main = "Fig 13: Correlation between Variables", mar=c(1,1,1,1))
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
