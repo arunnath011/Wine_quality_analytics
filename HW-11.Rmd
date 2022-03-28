@@ -1,0 +1,113 @@
+---
+title: "HW week 11"
+author: "w203 teaching team"
+subtitle: 'w203: Statistics for Data Science'
+
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Regression analysis of YouTube dataset
+
+You want to explain how much the quality of a video affects the number of views it receives on social media.  **This is a causal question.**
+
+You will use a dataset created by Cheng, Dale and Liu at Simon Fraser University.  It includes observations about 9618 videos shared on YouTube.  Please see [this link](http://netsg.cs.sfu.ca/youtubedata/) for details about how the data was collected.
+
+You will use the following variables:
+
+- views: the number of views by YouTube users.
+
+- rate: the average rating given by users.
+
+- length: the duration of the video in seconds.
+
+You want to use the `rate` variable as a proxy for video quality.  You also include `length` as a control variable.  You estimate the following ols regression:
+
+$$\text{views} =   789 +  2103    \text{ rate} +      3.00 \text{ length} $$
+
+
+a. Name an omitted variable that you think could induce significant omitted variable bias.  Argue whether the direction of bias is towards zero or away from zero.
+
+b. Provide a story for why there might be a reverse causal pathway (from the number of views to the average rating).  Argue whether the direction of bias is towards zero or away from zero.
+
+c. You are considering adding a new variable, `ratings`, which represents the total number of ratings.  Explain how this would affect your measurement goal.
+
+```{r}
+
+library(tidyverse)
+library(magrittr)
+library(ggplot2)
+library(patchwork)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(car)
+```
+
+
+
+```{r}
+df <- read.delim("videos.txt", header = TRUE, sep = "\t", dec = ".")
+df
+```
+
+Histogram analysis to better understand the distribution of the X variables
+```{r}
+hist(log10(df$comments))
+hist(log10(df$length))
+hist(log10(df$views))
+hist((df$rate))
+hist(log10(df$ratings))
+```
+
+
+you want to use the `rate` variable as a proxy for video quality.  You also include `length` as a control variable.  You estimate the following ols regression:
+
+$$\text{views} =   789 +  2103    \text{ rate} +      3.00 \text{ length} $$
+Checking the model with above mentioned variables, and confirming the estimators
+```{r}
+model_1 <- lm(views ~ rate+length, data=df)
+summary(model_1)
+
+```
+
+a. Name an omitted variable that you think could induce significant omitted variable bias.  Argue whether the direction of bias is towards zero or away from zero.
+
+```{r}
+model_2 <- lm(views ~ rate+length+ratings, data=df)
+summary(model_2)
+
+```
+
+```{r}
+model_2_1 <- lm(ratings~views, data=df)
+summary(model_2_1)
+
+```
+
+
+Feedback of the ommitted variable: based on the summary of the models(1&2) above, ratings might be the ommitted variable which could be of key interest, B1 and B_1(omitted variable), the estimate for B1 =3 and B_1=356, and from the model_2_1, we have the estimate for the gamma_1 at 0.0014, since that is greater than 0, the effect of ratings on the overall model is of a positive feedback. we can calculate that based on the value of B_1 x gamma_1 =356.72x0.0014=0.4986, which is greater than zero hence resulting in a positive feedback, the direction of the bias is tending is away from zero since the estimated values >0 @ 0.4986.
+
+
+b. Provide a story for why there might be a reverse causal pathway (from the number of views to the average rating).  Argue whether the direction of bias is towards zero or away from zero.
+
+```{r}
+model_4 <- lm(ratings~views+rate+length, data=df)
+summary(model_4)
+```
+based on the model estimate, it seems the B_1 for model_4 is at 0.0014 which is greater than 0, but tending closer to zero, this we could say the bias is positive since it is greater than zero, but since the absolute value is so small, we can say it is tending closer to zero
+
+c. You are considering adding a new variable, `ratings`, which represents the total number of ratings.  Explain how this would affect your measurement goal.
+```{r}
+model_2 <- lm(views ~ rate+length+ratings, data=df)
+summary(model_2)
+
+```
+Based on the analysis, when we add in the variable ratings, it does significantly change the model_1 compared to model_2, the ratings have a estimate at 363.52, which means for every one unit change in rating, it increases the views by 363.52, which when compared to model_1 estimates were rate(rating of the video) seem to be significant variable with estimator at 2103.9 which means for every 1 unit change in rate, the views goes up by 2103.9.the effect of other estimators such as length on model_1 is at 3, for every one unit increase in length of the video, it increases the views by 3 times, considerably smaller impact than variable such as rate for model_1. adding rating does reduce the overall effect of rate in the model, as the estimator drops from 2103 to 345 for rate.
+
+
