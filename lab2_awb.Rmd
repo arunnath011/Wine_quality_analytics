@@ -47,7 +47,7 @@ summary(red_wine_model1)
 
 ```
 ```{r}
-white_wine_model1 <- lm(quality ~ residual.sugar + citric.acid + chlorides + total.sulfur.dioxide + sulphates + alcohol, data=df_wine_red)
+white_wine_model1 <- lm(quality ~ residual.sugar + citric.acid + chlorides + total.sulfur.dioxide + sulphates + alcohol, data=df_wine_white)
 summary(white_wine_model1)
 ```
 
