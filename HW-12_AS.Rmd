@@ -1,0 +1,212 @@
+---
+title: "HW week 12"
+author: "w203 teaching team"
+subtitle: 'w203: Statistics for Data Science'
+
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r load packages, message = FALSE}
+library(tidyverse)
+library(ggplot2) 
+library(sandwich)
+library(stargazer)
+library(car)
+library(lmtest)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r source functions from project, echo = FALSE}
+source('./src/load_and_clean.R')
+source('./src/get_robust_se.R')
+```
+
+```{r load data} 
+d <- load_and_clean(input = 'videos.txt')
+summary(d)
+
+```
+
+
+# Regression analysis of YouTube dataset
+
+You want to explain how much the quality of a video affects the number of views it receives on social media. In a world where people can now buy followers and likes, would such an investment increase the number of views that their content receives?  **This is a causal question.** 
+
+You will use a dataset created by Cheng, Dale and Liu at Simon Fraser University.  It includes observations about 9618 videos shared on YouTube.  Please see [this link](http://netsg.cs.sfu.ca/youtubedata/) for details about how the data was collected.
+
+You will use the following variables:
+
+- `views`: the number of views by YouTube users.
+- `average_rating`: This is the average of the ratings that the video received, it is a renamed feature from `rate` that is provided in the original dataset. (Notice that this is different from `cout_of_ratings` which is a count of the total number of ratings that a video has received. 
+- `length:` the duration of the video in seconds.
+
+a. Perform a brief exploratory data analysis on the data to discover patterns, outliers, or wrong data entries and summarize your findings.
+
+```{r conduct EDA in this chunk}
+sum(d$video_id=="#NAME?")
+sapply(d, function(x) sum(is.na(x)))
+```
+```{r}
+sum(nchar(as.character(d$video_id))!=11)
+sum(is.na(d$views))
+summary(d)
+names(d)
+```
+```{r Histogram analysis of views}
+h_1 <-d %>%
+  ggplot(aes(x= views))+
+  geom_histogram()+
+  labs(
+    x="Views",
+    title="Distribution of Views"
+  )
+h_1
+h_2 <-d %>%
+  ggplot(aes(x= log(views)))+
+  geom_histogram()+
+  labs(
+    x="Ln(Views)",
+    title="Distribution of Log(Views)"
+  )
+  h_2
+```
+```{r QQ plot of views to check for normal distribution}
+par(mfrow=c(1,2))
+qqnorm(d$views)
+qqnorm(log(d$views))
+par(mfrow=c(1,1))
+```
+```{r histogram analysis of average_rating and calculating the mean_rating}
+par(mfrow=c(1,2))
+hist(d$average_rating)
+qqnorm((d$average_rating))
+par(mfrow=c(1,1))
+m_rate <- mean(d$average_rating,na.rm=TRUE)
+m_rate
+```
+```{r histogram analysis of  length of the video}
+par(mfrow=c(1,2))
+hist(d$length)
+qqnorm((d$length))
+par(mfrow=c(1,1))
+```
+
+```{r removing the NA and outlier for length of video}
+#removing NA's from the View
+d <- d[!is.na(d$views),]
+#removing video length greater than 11 min.
+d <- d[d$length<= 660,]
+#assign ratings to unrated videos
+d[d$average_rating ==0 ,"average_rating"] <- m_rate
+summary(d)
+```
+
+
+```{r Correleation analysis to understand IID of variables}
+cor(cbind(log(d$views),d$views,d$average_rating,d$length,deparse.level = 2))
+df <- cbind(log(d$views),d$views,d$average_rating,d$length)
+pairs(df)
+```
+```{r correleation plot with scatterplot to check for IID}
+scatterplotMatrix(~log(d$views)+d$views+d$average_rating+d$length,
+                  data=NULL, plot.points= F)
+```
+
+```{r adding a new feature len_min to help to better understand length of video in mins}
+d$len_min <- d$length/60
+
+```
+
+
+
+1.)looking at the dataframe it seems the ID has some of the names missing and is shown as "#NAME?", overall there is 129 data points with missing video_id names, also there are some datapoints in video_id which are not not 11 characters long compared to the rest of the dataset.
+2.) analysis of missing values shows there is some missing data in the dataframe
+3.) distrubution of the views with out transformation looks heavly skewed, applying a natural log transformation makes the views look like a normal distribution
+4.)Average rating analysis shows the data is not normally distributed, majority of the rating seems to be at 5 and there is large number of videos with rating =0, the mean of the rating is calculated at ~3.7
+5.) length of the video analysis shows majority of the videos seem to be lesser than 10 mintues (600s), normality analysis of the length suggests the videos are not normally distributed, it seems the data as long tail for videos greater than length 600s
+6.)As prepration of the data for creating a model, it will be good to get rid of the NA's from the views and length of the video less than 11 min(660s), the reason for removing data beyond 11 mins, is data seems to be normally distributed for first 660 s of the dataset, and beyond that it seems its small fraction of the entire dataset too.
+7.) correleation analysis of the different variables shows there is no significant correleaton between the variables from the dataset, this is important for CLM, as the features IID is important
+8.) in addition to improve the overall understanding of the length of the video, we create a new column called 'len_min', it is the length converted into minutes.
+
+> 'What did you learn from your EDA? Cut this quoted text and describe your analysis in the quote block.'
+
+b. Based on your EDA, select an appropriate variable transformation (if any) to apply to each of your three variables.  You will fit a model of the type,
+
+$$
+  f(\text{views}) = \beta_0 + \beta_1 g(\text{rate})  + \beta_3 h(\text{length})
+  
+$$ 
+
+Where $f$, $g$ and $h$ are sensible transformations, which might include making *no* transformation. 
+
+```{r fit a regression model here}
+model <- lm(log(views)~ average_rating +len_min, data=d)
+
+par(mfrow=c(2,3))
+plot(model)
+#cook's distance to understand the effect of outlier
+plot(model,which=4)
+
+ stargazer(
+   model, 
+   type = 'text', 
+   se = list(get_robust_se(model))
+   )
+```
+
+c. Using diagnostic plots, background knowledge, and statistical tests, assess all five assumptions of the CLM. When an assumption is violated, state what response you will take.  As part of this process, you should decide what transformation (if any) to apply to each variable. Iterate against your model until your satisfied that at least four of the five assumption have been reasonably addressed. 
+
+> 1. **IID Data:** Correleation analysis between the variables to understand if there is any relationship between the variables, if the Correleation is significant it would violate the IID, Correleation analysis in the EDA part of this report
+> 2. **No Perfect Colinearity:** Doing a VIF analysis of the features in the model is a good way to understand if there is colinearity, if the Variance Inflation Factor > 5 then the feature is partially colinear, values >10 there is sign of heavy colinearity, shown in the VIF analysis towards the end of this report
+> 3. **Linear Conditional Expectation:**  the model fitting should be linear to fulfill the linear conditional expecations, based on the model residual and fit analysis, it suggets the model fulfills linear conditional expectations, shown in the model and residual analysis
+
+```{r code and plots assessing linear conditional expectation}
+print("ModelSummary Data ~Non-heteroskedastocity~ robust standard Errors")
+summary(model)
+```
+
+
+```{r code and plots assessing error variance}
+print("Coefficients with Heteroskedasticity ~ robust Standard Errors")
+coeftest(model, vcov=vcovHC)
+```
+
+
+
+> 4. **Homoskedastic Errors:** 'Replace this quote with what you are looking for when you are assessing homoskedastic errors. Also include what you observe in your plot. In the model that you have chosen to report, do you satisfy the assumption of homoskedastic errors?'
+
+```{r Test for Homoscadascity}
+print("Formal Test for Homoscadascity")
+bptest(model)
+
+```
+We can use the BP test( Breusch -Pagan) test to understand the level of homoskedasticity of the errors, from the analysis the p-value >0.05, this failing to reject the H0 (H0-> data is homoscakedastic)
+
+
+> 5. **Normally Distributed Errors:** Analysis below shows if the residuals are normally distributed or not
+
+```{r code and plots assessing normally distributed errors}
+print("Formal Test of Residual Normality")
+set.seed(56423)
+shapiro.test(sample(model$residuals,size=5000,replace = TRUE))
+qqnorm(model$residuals)
+```
+Analysis of the residuals with qq plot shows visually all the errors is normally distributed, running the normality test using the Shapiro test the p value is < 0.05, which means we reject the H0 that the residuals are not normally distributed, looking at the qq plot of the residuals, it seems it is the tail ends of the data set which seem to be away from a normal distribution.
+
+
+```{r VIF analysis for the model}
+print("Variance Inflation Factor")
+vif(model)
+```
+
+
+VIF analysis is a good way to undersand if the model features are colinear or not, from this analysis we see mdoel VIF analysis is ~1, if the VIF< 5 the chances of the colinearity is minimal.
+
+
+
+
