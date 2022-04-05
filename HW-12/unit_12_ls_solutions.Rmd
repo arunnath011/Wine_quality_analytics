@@ -1,0 +1,364 @@
+---
+title: "Unit 12 Live Session: The Classical Linear Model"
+output: github_document
+---
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(patchwork)
+library(car)
+library(lmtest)
+library(sandwich)
+library(stargazer)
+```
+
+```{r chunk options}
+knitr::opts_chunk$set(message=FALSE, dpi=300)
+```
+
+
+```{r get robust ses }
+rse <- function(model) { 
+  sqrt(diag(vcovHC(model)))
+  }
+```
+
+
+
+![](https://miro.medium.com/max/956/1*_lXdcfP1Ur4-ZpGSibLAVQ.png){width=60%}
+# Roadmap
+
+## Rearview Mirror
+
+- Statisticians create a population model to represent the world.
+- The BLP is a useful summary for a relationship among random variables.
+- OLS regression is an estimator for the Best Linear Predictor (BLP).
+- For a large sample, we only need two mild assumptions to work with OLS
+    - To know coefficients are consistent
+    - To have valid standard errors, hypothesis tests
+
+## Today
+
+- The Classical Linear Model (CLM) allows us to apply regression to smaller samples.
+- The CLM requires more to be true of the data generating process, to make coefficients, standard errors, and tests *meaningful* in small samples. 
+- Understanding if the data meets these requirements (often called assumptions) requires considerable care.
+
+## Looking Ahead
+
+- The CLM -- and the methods that we use to evaluate the CLM -- are the basis of advanced models (*inter alia* time-series)
+- (Week 13) In a regression studies (and other studies), false discovery is a widespread problem.  Understanding its causes can make you a better member of the scientific community.
+
+# The Classical Linear Model     
+
+## Comparing the Large Sample Model and the CLM, Part I
+
+- We say that in small samples, more needs be true of our data for OLS regression to "work." 
+  - What do we mean when we say "work"? 
+    - If our goals are descriptive, how is a "working" estimator useful?
+    - If our goals are explanatory, how is a "working" estimator useful? 
+    - If our goals are predictive, are the requirements the same? 
+    
+> When people say that OLS "works" in a small sample, they generally mean that the coefficients are unbiased (consistent is not enough in a small sample), plus we have consistent estimators for the standard error.  They might also mean that confidence intervals and t-tests are valid.
+>
+> In descriptive model building, our goal is to describe and simplify a joint distribution.  In general, the model will not reflect any (possible) causal relationships. A coefficient will capture the strength of an (associative) relationship.  Said somewhat more simply -- a descriptive estimator would be useful at describing relationships between variables. 
+> 
+> In explanatory model building we've got a more difficult task because we have to work inside a causal theory that accurately reflects the world. Here, a reliable estimator would consistently (or unbiasedly) estimate a causal relationships inside a causal theory. When we combine this together with the requirements of the CLM, creating models becomes a *very* difficult task! 
+> 
+> If we're predicting, it isn't clear that we need any guarantees about our model coefficients. However, when we produce predictions based on linear models, there is a **very real** problem: people who view or hear the read-out from the model are **very** likely to unknowingly transform the model from a predictive model, to a descriptive model, to an explanatory model. That is, the weights that produce the predictions will be thought of by decision makers to describe the world, and in that simple description, to describe causal featuers of the world. Of course, you'll be more careful to guard against this; but, it will happen. 
+
+## Comparing the Large Sample Model and the CLM, Part II
+
+- Suppose that you're interested in understanding how subsidized school meals benefit under-resourced students.
+  - Using the tools from 201, refine this question to a data science question.
+  - Suppose that to answer the question you have identified, there are two data sources:
+    - Individual-level data about income, nutrition and test scores, self-reported by individual families who have opted in to the study.  
+    - Government data about school district characteristics, including district-level college achievement; county-level home prices, and state-level tax receipts.
+  - What are the tradeoffs to these different sources?
+  
+> One of the most fun (and challenging) parts of statistical work is having to design the research so that it feeds forward into tests that make sense. And, of course, there are many, *many* ways that we could possibly measure data at different levels with the intent of capturing similar concepts. 
+> 
+> - As a starting point, we know that Berkeley Public Schools provide morning food (before the start of classes) to all students, and provide 40% of their students with free or reduced price meals for lunch. One method of measuring this might be to look at the individual-level -- for each student are they eligible for free or reduced price food? Do they take advantage of the morning nutrition program? And, what are their test scores. This has the benefit of producing specific individual data; but, this data might be subject to recording problems, or self-report error, or... 
+> 
+> The alternative is to rely on higher-level aggregate statistics. For example, that for Berkeley Public Schools 40% of students are eligible for free or reduced price meals. In a neighboring school district these rates might be higher or lower. Similarily, in neighboring school districts average educational achievement statistics might be either higher or lower. 
+> 
+> This second measurement strategy has the benefit of having **rock-solid** official reporting data. However, the gains in veracity comes at considerable other problems -- a district-level mean is a *very dramatic* summary of data - it throws out a lot of information. 
+> 
+> From the point of view of the model (just the simple, OLS Golum) more data would be better. But, from the point of view of the data scientist who is using the model, the answer is not so clear. 
+  
+## Comparing the Large Sample Model and the CLM, Part III
+
+- Suppose you use individual-level data (you have a large sample).  
+    - Which of the large-sample assumptions do you expect are valid, and which are problematic?
+    
+> Meeting the large sample requirements is **really** easy -- except when it isn't! For large samples, the only requirements are that the data is generated through an IID sample and there is a unique BLP. The unique BLP is usually not a big problem, but there can be major problems with IID here. There is likely clustering by school, clustering by classroom, geographical clustering by home location, etc.  There may be strategic effects where one student affects the performance of another.
+
+- Say you use school-district-level data (you have a small sample).
+    - Which of the CLM assumptions do you expect are valid, and which do you expect are most problematic?
+    
+> Interestingly, moving to the district level may at least partially resolve some of the problems with the IID assumption.  There may still be geographical clustering, but this is likely to be less of a problem when discussing school districts.  On the other hand, a lot of the other assumptions will likely be harder to meet.  The conditional expectation is unlikely to be linear, and we may need to go through an aggressive process of variable transformations to fix this.  Heteroskedasticity is likely to be a problem which may require further transformations.  Finally, normality is less of a problem because we don't need it for unbiasedness and consistent standard errors, but it will typically be hard to meet.
+
+- Which dataset do you think will give you more precise estimates?
+
+> On the one hand, nutrition policy is probably set at the school district level, so the district data captures a lot of the variation we are interested in.  But there is a large variation between different students in a district.  Moving to individual data lets us model some of what causes different scores from student to student, reducing the remaining error variance and potentially leading to much more precise estimates.  In general, we might say that researchers are usually eager to get their hands on individual level data when possible.
+  
+
+
+    
+# Problems with the CLM Requirements 
+
+- There are five requirements for the CLM
+
+  1. IID Sampling 
+  2. Linear Conditional Expectation 
+  3. No Perfect Collinearity
+  4. Homoskedastic Errors 
+  5. Normally Distributed Errors
+  
+- For each of these requirements: 
+  - Identify one **concrete** way that the data might not satisfy the requirement. 
+  - Identify what the consequence of failing to satisfy the requirement would be. 
+  - Identify a path forward to satisfy the requirement. 
+  
+> For example: If the data were to posess two indicators, one that says "is on a free- or reduced-price meal plan" and another that says, "is not on a free- or reduced-price meal plan" there would be perfect colinearity in the data. As a result, any model that I estimate would drop one of these features, which is -- in fact -- the easiest way forward.  
+
+# R Exercise
+
+If you haven't used the `mtcars` dataset, you haven't been through an intro applied stats class! 
+
+In this analysis, we will use the mtcars dataset which is a dataset that was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973-74 models). The dataset is automatically available when you start R.  For more information about the dataset, use the R command: help(mtcars)
+
+```{r load-data, message=FALSE}
+data(mtcars)
+
+glimpse(mtcars)
+```
+
+1. Using the mtcars data, run a multiple linear regression to find the relationship between displacement (`disp`), gross horsepower (`hp`), weight (`wt`), and rear axle ratio (`drat`) on the miles per gallon (`mpg`).
+
+```{r}
+model_one <- lm(mpg ~ disp + hp + wt + drat, data = mtcars)
+```
+
+2. For **each** of the following CLM assumptions, assess whether the assumption holds.  Where possible, demonstrate multiple ways of assessing an assumption.  When an assumption appears violated, state what steps you would take in response.
+
+- I.I.D. data
+
+> To assess IID data, we need to know about the sampling process. From the mtcars documentation, "The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models)."  There are several reasons we might expect cars to NOT be independent of each other.
+>
+> - A particular car company might make cars that are similar to each other (clustering)
+> - A successful car might be imitated by other manufacturers (strategic effect)
+> - A car company might make their cars different from each other to avoid cannibalizing sales (anti-clustering)
+> - Different car manufacturers might rely on parts from a small set of upstream suppliers (anther type of clustering)
+
+- Linear conditional expectation
+
+> To assess whether there is a linear conditional expectation, we've learned to look at the predicted vs. residuals of the model.
+
+```{r}
+mtcars %>% 
+  mutate(
+    model_one_preds = predict(model_one), 
+    model_one_resids = resid(model_one)
+  ) %>% 
+  ggplot(aes(model_one_preds, model_one_resids)) + 
+  geom_point() + 
+  stat_smooth()
+```
+
+> This doesn't look good. There seems to be a pretty clear non-linear relationship in this data -- perhaps parabolic or logarithmic.
+>
+> To correct this, we will try variable transformations, hoping to end up with a more linear pattern in this plot.
+>
+> Additionally, you may sometimes want to create predictor versus fitted plots, which may give you clues about what variables you need to transform.
+
+
+```{r}
+mtcars <- mtcars %>% 
+  mutate(
+    model_one_preds = predict(model_one), 
+    model_one_resids = resid(model_one)
+  ) 
+
+disp_resids <- mtcars %>% 
+  ggplot(aes(disp, model_one_resids)) + 
+  geom_point() + 
+  stat_smooth()
+
+hp_resids <- mtcars %>% 
+  ggplot(aes(hp, model_one_resids)) + 
+  geom_point() + 
+  stat_smooth()
+
+wt_resids <- mtcars %>% 
+  ggplot(aes(wt, model_one_resids)) + 
+  geom_point() + 
+  stat_smooth()
+
+drat_resids <- mtcars %>% 
+  ggplot(aes(drat, model_one_resids)) + 
+  geom_point() + 
+  stat_smooth()
+```
+
+```{r}
+disp_resids
+hp_resids
+wt_resids
+drat_resids
+```
+
+- No perfect collinearity
+
+> First, we can look at our coefficients, and notice that R has not dropped any variables.
+
+```{r}
+model_one$coefficients
+```
+
+> This tells us that there is no perfect collinearity.  This assumption also includes the requirement that a BLP exists, which may not happen if there are heavy tails.  In this case, though, we don't see any distributions that look like they have unusually low or high values.
+
+- Homoskedastic errors
+
+> To assess whether the distribution of the errors is homoskedastic, we can examine the residuals versus fitted plot again.  We are interested in whether there is a band of even thickness from left to right. Looking at the plot above, indeed, it does look like there might be some increase in the variance of the residuals at the upper side of the predicted values, but it is not severe.  We may hope that a log transform fixes this small problem
+
+> Another idea is to examine the scale-location plot.  Homoskedasticity would show up on this plot as a flat smoothing curve.
+ 
+```{r}
+plot(model_one, which=3)
+```
+
+> This plot looks quite good, suggesting no major problem with heteroskedasticity.
+
+- Normally distributed errors
+
+```{r}
+plot_one <- mtcars %>% 
+  ggplot(aes(x = model_one_resids)) + 
+  geom_histogram()
+  
+plot_two <- mtcars %>% 
+  ggplot(aes(sample = model_one_resids)) + 
+  stat_qq() + stat_qq_line()
+
+plot_one / plot_two
+```
+
+> The histogram of residuals and the qqplot shows some some deviation from normality, specifically a right skew and perhaps an unusual concentration on the right tail.
+>
+> This is not a problem for unbiasedness, and it is not a problem for our standard errors.  However, this will threaten the validity of our t-tests and confidence intervals.  We may hope to fix this problem with a variable transformatin.
+
+3. In addition to the above, assess to what extent (imperfect) collinearity is affecting your inference. 
+
+> The simplest way to do this is to examine the variance inflation factor (VIF) for each coefficient.
+
+```{r}
+vif(model_one)
+```
+
+> This is telling us that the standard errors for displacement and weight are over five times higher than they would be without the other variables.  That doesn't mean we need to change anything, however.  This is only a problem if the standard errors are getting too big for our measurement goals.  Is variance inflation stopping you from getting the precise measurement you want of a key variable of interest?
+
+```{r}
+coeftest(model_one)
+```
+
+> We haven't said exactly what our key variables of interest are here.  If displacement or weight are really just control variables, we really don't care what their standard errors are.  If either variable is the main target of our measurement, we might have to consider whether we're getting enough precision.  In the case of displacement, it's really true that we have too much uncertainty to detect an effect (the t-test is non significant), and we might have to consider dropping other variables to help with this.
+
+
+> If you are in a position in which you may consider dropping variables to help with collinearity, you will need to get an idea for which variables are correlated with each other.  A good visual method of doing this is to use the `pairs` function, to produce a **basic** scatterplot of the variables in a dataframe. Using (a) `dplyr`, (b) the `magrittr` pipe `%>$`, and the `select` function, select the variables that you have used in the regression and the use the `pairs` function to plot their relationships. Are any of these variables highly correlated? What are the consequences of this for your understanding? 
+
+```{r}
+mtcars %>% 
+  select(mpg, disp, wt, hp, drat, model_one_resids) %>% 
+  pairs()
+```
+
+> You can also expand this somewhat using a function within the `GGally` package. When you pull a specific function out of another packge, note that you're bringing on (a) new dependencies; and, (b) new requirements of your readers to understand (and trust) that package. 
+
+> There is a real tendency for students to do this in their labs. I've included this here, as a method of showing why this can be challenging for a reader. When you read this, is the additional work that is on the plate of the reader "worth it"? Almost certainly you're going to have to install this package (`install.packages('GGally')`) before this will run for you. 
+
+```{r, message = FALSE}
+mtcars %>% 
+  select(mpg, disp, wt, hp, drat, model_one_resids) %>% 
+  GGally::ggpairs()
+```
+
+> Clearly, `mpg` and `wt` are negatively correlated -- really clearly. Weight and hp seem to be strongly positively correlated. Horsepower and drat are strangely related. Basically, every feature in this model is related to every other feature.
+
+4. Interpret the coefficient on horsepower. 
+
+```{r}
+coeftest(model_one, vcovHC)
+```
+
+> For a car that has no change in weight, displacement, or rear axel ratio, for each additional horsepower, the predicted miles per gallon decrease by `r round(coef(model_one)['hp'], 3)`. However, because there is not much intuitive understanding for a single horsepower, it might be easier to understand this change within the larger context of the distribution of horsepower. 
+
+```{r}
+mtcars %>% 
+  ggplot(aes(x = hp)) + 
+  geom_histogram() + 
+  labs(
+    x = 'Horsepower', 
+    title = 'Distribution of horsepower' 
+  )
+```
+
+```{r}
+mt_hp_sd   <- sd(mtcars[, 'hp'])
+```
+
+> The standard deviation of horsepower is `r mt_hp_sd`. And so, if the other variables stay the same, but the horsepower changed by one standard deviation, the model predicts the fuel economy to change by `r round(coef(model_one)['hp'] * mt_hp_sd, 2)`. 
+
+> Providing this extra context helps to understand *just how small* an effect there seems to be between horsepower and fuel economy in this model. 
+
+
+5. Perform a hypothesis test to assess whether rear axle ratio has an effect on mpg. What assumptions need to be true for this hypothesis test to be informative? Are they? 
+
+> First things first, in order for the results of this hypothesis test to be informative, we need *ALL* of the CLM assumptions to be met. A failure of any of these to be true could either produce false-negative or false-positive results. 
+
+> We already know that we didn't do a very good job of meeting CLM assumption #2 -- linear conditional expectation. When we think about CLM #3, we meet the no *perfect* collinearity assumption -- the model inverts the matrix no-problem. 
+
+> We'll report the test of rear-axel ratio, but it doesn't seem to be very well-founded. 
+
+```{r}
+coeftest(model_one, vcovHC)
+```
+
+> There is no measurable relationship between axel ratio (measured in the variable `drat`) and gas mileage. A fuller answer would also provide some more sensible context for `drat`, but beause this model is so fraught already, it doesn't seem entirely necessary. 
+
+6. Choose variable transformations (if any) for each variable, and try to better meet the assumptions of the CLM (which also maintaining the readability of your model).
+
+> For starters, we might try taking a log of mpg to reduce the curvature we see.
+
+```{r}
+model_two <- lm(log(mpg) ~ disp + hp + wt + drat, data = mtcars)
+
+mtcars <- mtcars %>% 
+  mutate(
+    model_two_preds  = predict(model_two), 
+    model_two_resids = resid(model_two)
+  )
+
+mtcars %>% 
+  ggplot(aes(x = model_two_preds, y = model_two_resids)) + 
+  geom_point() + stat_smooth()
+
+mtcars %>% 
+  ggplot(aes(sample = model_two_resids)) + 
+  geom_qq() + geom_qq_line()
+```
+
+> The residuals versus fitted plot still shows some deviation from linear conditional expectation, but the problem is not as severe as before.
+
+
+
+
+7. (As time allows) report the results of both models in a nicely formatted regression table.
+
+```{r} 
+stargazer(
+  model_one, model_two, 
+  se = list(rse(model_one), rse(model_two)),
+  type = 'text')
+```
+
+
