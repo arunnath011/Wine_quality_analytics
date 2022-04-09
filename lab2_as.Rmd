@@ -1,0 +1,376 @@
+---
+title: "Lab 2 Lightning Ridge Proposal"
+author: "Luc R, Andrew B, Vish S, Arun N"
+date: '2022-03-21'
+output: pdf_document
+---
+
+
+
+```{r load packages, echo=FALSE, message=FALSE}
+
+install.packages('lmtest')
+install.packages('patchwork')
+install.packages('sandwich')
+install.packages('forecast')
+
+library(tidyverse)
+library(magrittr)
+library(ggplot2)
+library(patchwork)
+library(sandwich)
+library(lmtest)
+library(gridExtra)
+library(grid)
+library(forecast)
+library(car)
+
+```
+
+
+```{r}
+df_red <- read.csv(file = 'Data/winequality-red.csv', sep=';')
+df_white <- read.csv(file = 'Data/winequality-white.csv', sep=';')
+#headers <- c('Fixed Acidity', 'Volatile Acidity','Citric Acid', 'Residual Sugars', 'chlorides', 'Free Sulfur Dioxide','Total Sulfur Dioxides', 'Density','pH', 'Sulphates', 'Alcohol' )
+
+#df_red$Wine_Type = 'Red'
+#df_white$Wine_Type = 'White'
+
+#all_wine = rbind(df_red, df_white)
+```
+
+
+```{r}
+df_red$wine_type <- "red"
+df_white$wine_type <-"white"
+print("Summary Red Wine")
+summary(df_red)
+print("Summary White Wine")
+summary(df_white)
+```
+
+```{r}
+set.seed(87323) 
+df_red1 <- df_red[sample(1:nrow(df_red)), ]
+set.seed(87233) 
+df_white1 <- df_white[sample(1:nrow(df_white)), ]  
+```
+
+
+```{r}
+dt_red = sort(sample(nrow(df_red1), nrow(df_red1)*.7))
+train_red<-df_red[dt_red,]
+test_red<-df_red[-dt_red,]
+
+dt_white=sort(sample(nrow(df_white1), nrow(df_white1)*.7))
+train_white<-df_white1[dt_white,]
+test_white<-df_white[-dt_white,]
+
+```
+
+
+
+```{r}
+print("Summary of Red Wine Train Data")
+summary(train_red)
+
+print("Summary of White Wine Train Data")
+summary(train_white)
+```
+
+
+
+```{r}
+
+ggplot() + 
+geom_histogram(data=df_red, aes(x=fixed.acidity , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x=fixed.acidity , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "density") +  
+       scale_x_continuous(name = "Fixed Acidity") +      
+       ggtitle("Fixed Acidity Comparison") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y=fixed.acidity), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y=fixed.acidity), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+ 
+```
+
+```{r}
+ggplot() + 
+geom_histogram(data=df_red, aes(x=fixed.acidity , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x=fixed.acidity , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "density") +  
+       scale_x_continuous(name = "Fixed Acidity") +      
+       ggtitle("Fixed Acidity Comparison") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y=fixed.acidity), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y=fixed.acidity), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+
+```{r}
+ggplot() + 
+geom_histogram(data=df_red, aes(x=citric.acid  , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x=citric.acid  , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "density") +  
+       scale_x_continuous(name = "Citric Acid ") +      
+       ggtitle("Citric Acid Comparison") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y=citric.acid ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y=citric.acid ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+```{r}
+
+ggplot() + 
+geom_histogram(data=df_red, aes(x=residual.sugar  , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x=residual.sugar  , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "density") +  
+       scale_x_continuous(name = "Residual Sugar ") +      
+       ggtitle("Citric Acid Comparison") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y=residual.sugar ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y=residual.sugar ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+
+
+
+```{r}
+ggplot() + 
+geom_histogram(data=df_red, aes(x=chlorides , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x=chlorides , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "density") +  
+       scale_x_continuous(name = "Chlorides") +      
+       ggtitle("Chlorides  Comparison") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y=chlorides ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y=chlorides  ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+
+
+```{r}
+ggplot() + 
+geom_histogram(data=df_red, aes(x=free.sulfur.dioxide , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x=free.sulfur.dioxide  , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "density") +  
+       scale_x_continuous(name = "Free Sulfurdioxide") +      
+       ggtitle("Free Sulfurdioxide") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y=free.sulfur.dioxide ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y=free.sulfur.dioxide ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+
+
+
+```{r}
+ggplot() + 
+geom_histogram(data=df_red, aes(x=total.sulfur.dioxide, y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x=total.sulfur.dioxide , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "density") +  
+       scale_x_continuous(name = "Total Sulfurdioxide") +      
+       ggtitle("Total Sulfurdioxide") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y=total.sulfur.dioxide ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y=total.sulfur.dioxide ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+
+
+
+```{r}
+ggplot() + 
+geom_histogram(data=df_red, aes(x= density , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x= density  , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "density") +  
+       scale_x_continuous(name = " Density ") +      
+       ggtitle(" Density ") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y= density  ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y= density  ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+
+
+```{r}
+ggplot() + 
+geom_histogram(data=df_red, aes(x= pH , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x= pH  , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "pH") +  
+       scale_x_continuous(name = " pH ") +      
+       ggtitle(" pH Comparison") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y= pH  ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y= pH  ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+
+
+```{r}
+ggplot() + 
+geom_histogram(data=df_red, aes(x= sulphates , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x= sulphates  , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "Sulphates") +  
+       scale_x_continuous(name = " Sulphates ") +      
+       ggtitle(" Sulphates Comparison ") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y= sulphates  ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y= sulphates ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+
+
+```{r}
+ggplot() + 
+geom_histogram(data=df_red, aes(x= alcohol , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x= alcohol  , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "Sulphates") +  
+       scale_x_continuous(name = " Sulphates ") +      
+       ggtitle(" Alcohol Comparison ") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y= alcohol  ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y= alcohol ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+
+
+```{r}
+ggplot() + 
+geom_histogram(data=df_red, aes(x= quality , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x= quality  , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "Quality") +  
+       scale_x_continuous(name = " Quality ") +      
+       ggtitle(" Quality Comparison ") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +
+
+ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y= quality  ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y= quality ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+```
+
+
+
+```{r}
+fig1 <- ggplot() + 
+geom_histogram(data=df_red, aes(x= quality , y=..density..,fill=wine_type), color='red',fill = 'red',alpha=0.25) + 
+geom_histogram(data=df_white, aes(x= quality  , y=..density..,fill=wine_type), color='orange',fill = 'orange',alpha=0.25) +scale_y_continuous(name = "Quality") +  
+       scale_x_continuous(name = " Quality ") +      
+       ggtitle(" Quality Comparison ") + 
+       theme(axis.line = element_line(colour = "black", 
+                                      size = 0.25)) +ggplot()+
+geom_boxplot(data=df_red, aes(x='Red', y= quality  ), color='red',fill = 'red',alpha=0.4) + 
+geom_boxplot(data=df_white, aes(x='White', y= quality ), color='orange',fill = 'orange',alpha=0.4)+ scale_x_discrete(name = "Type of Wine")+theme(axis.line = element_line(colour = "black",size = 0.25)) 
+
+fig1
+```
+
+```{r}
+model_red <- lm(quality ~ fixed.acidity+volatile.acidity+citric.acid+residual.sugar+chlorides+free.sulfur.dioxide+total.sulfur.dioxide+density+pH+sulphates+alcohol , data=train_red)
+summary(model_red)
+
+
+```
+```{r}
+print("Formal Test of Residual Normality")
+set.seed(56423)
+shapiro.test(sample(model_red$residuals,size=5000,replace = TRUE))
+qqnorm(model_red$residuals)
+par(mfrow=c(2,2))
+plot(model_red)
+```
+
+
+
+
+```{r}
+#create vector of VIF values
+vif_values <- vif(model_red)
+
+#create horizontal bar chart to display each VIF value
+barplot(vif_values, main = "VIF Values", horiz = TRUE, col = "steelblue",
+        axes=TRUE, cex.names=0.5, las=1)
+
+#add vertical line at 5
+abline(v = 5, lwd = 3, lty = 2)
+```
+
+
+
+```{r}
+scatterplotMatrix(~train_red$fixed.acidity+train_red$volatile.acidity+train_red$citric.acid+
+                    train_red$residual.sugar+train_red$chlorides+train_red$free.sulfur.dioxide+
+                    train_red$total.sulfur.dioxide+train_red$density+train_red$pH+train_red$sulphates+
+                    train_red$alcohol,
+                  data=NULL, plot.points= F)
+```
+```{r}
+install.packages('corrplot')
+library(corrplot)
+
+
+all_numeric_vals = subset(train_red,select=-c(wine_type))
+cor_tab <- cor(all_numeric_vals)
+round(cor_tab, 2)
+
+corrplot(cor_tab, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, main = "Fig 13: Correlation between Variables", mar=c(1,1,1,1))
+```
+
+
+```{r}
+#model_red
+model_red_l <- lm(quality ~ volatile.acidity+chlorides+total.sulfur.dioxide+pH+sulphates+alcohol+sulphates*free.sulfur.dioxide  , data=train_red)
+summary(model_red_l)
+par(mfrow=c(2,2))
+plot(model_red_l)
+vif(model_red_l)
+```
+```{r}
+#install.packages('interactions')
+library(interactions)
+
+interact_plot(model_red_l, pred =sulphates, modx = free.sulfur.dioxide , interval = TRUE)
+```
+
+```{r}
+#Model_red_2
+model_red_sq <- lm((quality) ~ volatile.acidity+chlorides+pH+sulphates+alcohol, data=train_red)
+summary(model_red_sq)
+par(mfrow=c(2,2))
+plot(model_red_sq)
+vif(model_red_sq)
+```
+
+```{r}
+model_white <- lm((quality) ~ volatile.acidity+chlorides+sulphates+alcohol+residual.sugar+free.sulfur.dioxide++total.sulfur.dioxide, data=train_white)
+summary(model_white)
+par(mfrow=c(2,2))
+plot(model_white)
+vif(model_white)
+```
+
+
+```{r}
+library(stargazer)
+stargazer(
+  model_red_sq,
+  model_white,
+  type='text',
+  header=FALSE,
+  star.cutoffs=c(0.05,0.01,0.001)
+)
+```
+
