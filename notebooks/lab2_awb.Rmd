@@ -1,0 +1,54 @@
+---
+title: "Regression Lab - Team Lightning Ridge - Properties of Wine and Their Effect on Quality"
+author: "Andrew Bailey, Arun Surendranath, Luc Robitaille, Visveswaran (Vish) Sivakumar"
+subtitle: 'w203: Statistics for Data Science'
+
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Abstract
+
+For our regression lab the Lightning Ridge team chose to analyze a wine quality dataset from the University of California - Irvine. The dataset consisted of 4,898 observation for white wine and 1,599 observations for red wine. Both datasets recored the same 12 attributes across both red and white wines. The purpose of our analysis was to identify which physiochemical properties of a wine increase the overall quality of each type of wine.
+
+# Research Questions
+
+>What are the most important attributes that create a great wine? Can we build a model which takes the chemical profile of wine and explains the overall quality of the product? 
+
+```{r}
+# df_wine_red <- read.delim("winequality-red.csv", header = TRUE, sep = "\t", dec = ".")
+df_wine_red <- read.delim("Data/winequality-red.csv", header = TRUE, sep = ";")
+#df_wine_red
+
+df_wine_white <- read.delim("Data/winequality-white.csv", header = TRUE, sep = ";")
+#df_wine_white
+```
+# Approach
+
+Our first attempts to address the research questions focused on identifying relationships between attributes of a wine prepping the dataset for any types of conflicts that might undermind our regression analysis.
+
+```{r}
+summary(df_wine_red)
+```
+```{r}
+summary(df_wine_red)
+```
+
+
+# Data Wrangling and Analysis
+
+Running some models
+
+```{r}
+
+red_wine_model1 <- lm(quality ~ residual.sugar + citric.acid + chlorides + total.sulfur.dioxide + sulphates + alcohol, data=df_wine_red)
+summary(red_wine_model1)
+
+```
+```{r}
+white_wine_model1 <- lm(quality ~ residual.sugar + citric.acid + chlorides + total.sulfur.dioxide + sulphates + alcohol, data=df_wine_white)
+summary(white_wine_model1)
+```
+
+
