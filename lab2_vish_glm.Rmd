@@ -82,13 +82,13 @@ model_white = glm(formula = quality_ind ~
                 #+ `citric acid`
                 + `residual sugar`
                 + chlorides
-                #+ `free sulfur dioxide`
-                + `total sulfur dioxide`
+                + `free sulfur dioxide`
+                #+ `total sulfur dioxide`
                 + density
-                #+ pH
+                + pH
                 + sulphates
-                + alcohol 
-                , data = df_red, family = binomial)
+                #+ alcohol 
+                , data = df_white, family = binomial)
 
 summary(model_white)
 
