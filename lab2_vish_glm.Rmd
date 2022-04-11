@@ -1,0 +1,95 @@
+---
+title: "Lab 2 Lightning Ridge Proposal"
+author: "Luc R, Andrew B, Vish S, Arun N"
+date: '2022-03-21'
+output: pdf_document
+---
+
+
+
+```{r load packages, echo=FALSE, message=FALSE}
+
+install.packages('lmtest')
+install.packages('patchwork')
+install.packages('sandwich')
+install.packages('forecast')
+
+library(tidyverse)
+library(magrittr)
+library(ggplot2)
+library(patchwork)
+library(sandwich)
+library(lmtest)
+library(gridExtra)
+library(grid)
+library(forecast)
+library(car)
+
+```
+
+
+```{r}
+df_red <- read.csv(file = 'Home/W203/mids_w203_lab2_lightning_ridge/Data/winequality-red.csv', sep=';')
+df_white <- read.csv(file = 'Data/winequality-white.csv', sep=';')
+#headers <- c('Fixed Acidity', 'Volatile Acidity','Citric Acid', 'Residual Sugars', 'chlorides', 'Free Sulfur Dioxide','Total Sulfur Dioxides', 'Density','pH', 'Sulphates', 'Alcohol' )
+
+#df_red$Wine_Type = 'Red'
+#df_white$Wine_Type = 'White'
+
+#all_wine = rbind(df_red, df_white)
+```
+```{r}
+df_red<-winequality_red
+df_white<-winequality_white
+```
+
+```{r}
+df_red$quality_ind<-0
+df_red$quality_ind[df_red$quality>=7]<-1
+
+```
+
+```{r}
+model_red = glm(formula = quality_ind ~ 
+                  `fixed acidity` 
+                + `volatile acidity` 
+                #+ `citric acid`
+                + `residual sugar`
+                + chlorides
+                #+ `free sulfur dioxide`
+                + `total sulfur dioxide`
+                + density
+                #+ pH
+                + sulphates
+                + alcohol 
+                , data = df_red, family = binomial)
+
+summary(model_red)
+
+```
+
+
+
+```{r}
+df_white$quality_ind<-0
+df_white$quality_ind[df_white$quality>=7]<-1
+```
+
+```{r}
+model_white = glm(formula = quality_ind ~ 
+                  `fixed acidity` 
+                + `volatile acidity` 
+                #+ `citric acid`
+                + `residual sugar`
+                + chlorides
+                #+ `free sulfur dioxide`
+                + `total sulfur dioxide`
+                + density
+                #+ pH
+                + sulphates
+                + alcohol 
+                , data = df_red, family = binomial)
+
+summary(model_white)
+
+```
