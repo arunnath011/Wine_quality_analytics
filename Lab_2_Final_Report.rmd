@@ -11,6 +11,7 @@ install.packages('lmtest')
 install.packages('patchwork')
 install.packages('sandwich')
 install.packages('stargazer')
+install.packages('gt')
 library(tidyverse)
 library(magrittr)
 library(ggplot2)
@@ -19,6 +20,7 @@ library(sandwich)
 library(lmtest)
 library(gridExtra)
 library(stargazer)
+library(gt)
 ```
 
 ```{r Load data}
@@ -294,9 +296,6 @@ var_11 <- var.test(df_red$quality,df_red$alcohol)
 df_var_red <- data.frame( name=  c('Fixed Acidity', 'Volatile Acidity','Citric Acid', 'Residual Sugars', 'chlorides', 'Free Sulfur Dioxide','Total Sulfur Dioxides', 'Density','pH', 'Sulphates', 'Alcohol' ),
                           var_stat =c(var_1$statistic,var_2$statistic,var_3$statistic,var_4$statistic,var_5$statistic,var_6$statistic,var_7$statistic,var_8$statistic,var_9$statistic,var_10$statistic,var_11$statistic))
 
-print("Table 5: Red Wine Model Variances")
-df_var_red
-
 var_12 <- var.test(df_white$quality,df_white$fixed.acidity)
 var_13 <- var.test(df_white$quality,df_white$volatile.acidity)
 var_14 <- var.test(df_white$quality,df_white$citric.acid)
@@ -309,12 +308,14 @@ var_20 <- var.test(df_white$quality,df_white$pH)
 var_21 <- var.test(df_white$quality,df_white$sulphates)
 var_22 <- var.test(df_white$quality,df_white$alcohol)
 
-
-
 df_var_white <- data.frame(name=  c('Fixed Acidity', 'Volatile Acidity','Citric Acid', 'Residual Sugars', 'chlorides', 'Free Sulfur Dioxide','Total Sulfur Dioxides', 'Density','pH', 'Sulphates', 'Alcohol' ),
                            var_stat =c(var_12$statistic,var_13$statistic,var_14$statistic,var_15$statistic,var_16$statistic,var_17$statistic,var_18$statistic,var_19$statistic,var_20$statistic,var_21$statistic,var_22$statistic))
-print('Table 6: White Wine Model Variances')
-df_var_white
+
+print("Table 5: Variance table for Red Wine")
+gt(df_var_red,rowname_col = df_var_red$name)
+
+print("Table 6: Variance table for white Wine")
+gt(df_var_white,rowname_col = df_var_white$name)
 ```
 >Normality
 
@@ -344,5 +345,32 @@ grid.arrange( fig5, fig6,fig7, fig8, ncol = 2, nrow = 2)
 grid.arrange( fig9, fig10, fig11,fig12, ncol = 2, nrow = 2)
 ```
 
+>IID
+>Best way to check for IID is to look at correlation analysis between the features for the dataset, in this case we will refer to the EDA correlation of analysis of the dataset from Red wine and White Wine. Based on the analysis, the majority of the data features seem to be IID, except for pH and fixed acidity which demonstrate negative correlation. 
+
+```{r tables7 and 8 from Arun}
+
+```
+
+
+>Omitted Variables: 
+
+>Age:
+The age of wine can be a strong indicator of quality, as it gives more time for chemicals to interact and flavor to develop. 
+Year:
+Wine quality can often be demarcated by the year the grapes were grown. This variable was not collected in the experiment which could be a key indicator in objective quality of the wine.
+Wine Type: 
+Further separation of data to the type of wine could hold information about what chemical attributes are better indicators for different types of wine. 
+
+>Conclusion
+
+>Creating an excellent wine is not an exact science provided just the physicochemical characteristics of the drink. It’s difficult to predict what makes an excellent wine from the major chemical variables as wine has hundreds to thousands of microbial characteristics that affect the taste, smell, and appearance of the product. Our team fails to reject the null hypothesis that: "there is no one equation of physicochemical properties that will predict the quality of a bottle of wine". However, we do believe that it is possible to predict what makes a bad bottle of wine. Through binning our data into good and bad wines it is easy to see a higher dispersion of chemical measurements on our bad bottles of wine. Thus in a future study we propose an outlier regression model that would measure for quantities of chemicals above the level accepted for good wines. 
+>Practical Uses for our causal model include quality assurance for the Vinho Verde vineyards as it would be highly beneficial to understand if a wine bottle is going to be judged poorly prior to it becoming bottled. 
+
+> Sources 
+
+>Paulo Cortez, University of Minho, Guimarães, Portugal, http://www3.dsi.uminho.pt/pcortez
+A. Cerdeira, F. Almeida, T. Matos and J. Reis, Viticulture Commission of the Vinho Verde Region(CVRVV), Porto, Portugal
+@2009
 
 
