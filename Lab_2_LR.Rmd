@@ -1,0 +1,399 @@
+---
+title: "Lab 2 Lightning Ridge Proposal"
+author: "Luc R, Andrew B, Vish S, Arun N"
+date: '2022-03-21'
+output: pdf_document
+---
+
+```{r load packages, echo=FALSE, message=FALSE}
+
+install.packages('lmtest')
+install.packages('patchwork')
+install.packages('sandwich')
+
+library(tidyverse)
+library(magrittr)
+library(ggplot2)
+library(patchwork)
+library(sandwich)
+library(lmtest)
+library(gridExtra)
+```
+
+
+```{r}
+df_red <- read.csv(file = 'winequality-red.csv', sep=';')
+df_white <- read.csv(file = 'winequality-white.csv', sep=';')
+headers <- c('Fixed_Acidity', 'Volatile_Acidity','Citric_Acid', 'Residual_Sugars', 'chlorides', 'Free_Sulfur_Dioxide','Total_Sulfur_Dioxides', 'Density','pH', 'Sulphates', 'Alcohol' )
+
+df_red$Wine_Type = 'Red'
+df_white$Wine_Type = 'White'
+
+all_wine = rbind(df_red, df_white)
+
+#Separate Random Samples for EDA
+y <- 0.30 * nrow(df_white)
+x <- 0.30 * nrow(df_red)
+sample_data_white <- sample(nrow(df_white), y, replace = FALSE)
+sample_data_red <- sample(nrow(df_red),x, replace = FALSE)
+
+red_eda_df <- df_red[sample_data_red, ]
+white_eda_df <- df_white[sample_data_white, ]
+
+white_eda_df$qual_bin <- white_eda_df$quality > 6
+red_eda_df$qual_bin <- red_eda_df$quality > 6
+
+red_lm_df <- df_red[-sample_data_red,]
+white_lm_df <- df_white[-sample_data_white,]
+
+white_lm_df$qual_bin <- white_lm_df$quality > 6
+red_lm_df$qual_bin <- red_lm_df$quality > 6
+```
+
+```{r EDA}
+summary(all_wine)
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$fixed.acidity, red_eda_df$fixed.acidity))
+
+fig1 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 1: Red And White \n Distribution of Fixed Acidity \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$volatile.acidity, red_eda_df$volatile.acidity))
+
+fig2 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 2: Red And White \n Distribution of Volatile Acidity \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$citric.acid, red_eda_df$citric.acid))
+
+fig3 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 3: Red And White \n Distribution of Citric Acid \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$residual.sugar, red_eda_df$residual.sugar))
+
+fig4 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 4: Red And White \n Distribution of Residual Sugar \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$chlorides, red_eda_df$chlorides))
+
+fig5 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 5: Red And White \n Distribution of Chlorides \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c(white_eda_df$free.sulfur.dioxide, red_eda_df$free.sulfur.dioxide))
+
+fig6 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 6: Red And White \n Distribution of Free Sulfur Dioxide \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$total.sulfur.dioxide, red_eda_df$total.sulfur.dioxide))
+
+fig7 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 7: Red And White \n Distribution of Total Sulfur Dioxide \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$pH, red_eda_df$pH))
+
+fig8 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 8: Red And White \n Distribution of pH \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$density, red_eda_df$density))
+
+fig9 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 9: Red And White \n Distribution of Density \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$sulphates, red_eda_df$sulphates))
+
+fig10 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 10: Red And White \n Distribution of Sulphates \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$alcohol, red_eda_df$alcohol))
+
+fig11 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig11: Red And White \n Distribution of Alcohol \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$quality, red_eda_df$quality))
+
+fig12 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 12: Red And White \n Distribution of Quality \n 30% Random Sample EDA")
+
+
+grid.arrange(fig1, fig2,fig3, fig4, ncol = 2, nrow = 2)
+grid.arrange(fig5, fig6, fig7, fig8, ncol = 2, nrow = 2)
+grid.arrange(fig9, fig10, fig11, fig12, ncol = 2, nrow = 2)
+```
+
+
+```{r}
+install.packages('corrplot')
+library(corrplot)
+
+
+all_numeric_vals_white = subset(white_eda_df,select=-c(Wine_Type))
+cor_tab_white <- cor(all_numeric_vals_white)
+round(cor_tab_white, 2)
+
+fig13 <- corrplot(cor_tab_white, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, main = "Fig 13: Correlation between Variables White Wine", mar=c(1,1,1,1))
+
+all_numeric_vals_red = subset(red_eda_df,select=-c(Wine_Type))
+cor_tab_red <- cor(all_numeric_vals_red)
+round(cor_tab_red, 2)
+
+fig14 <- corrplot(cor_tab_red, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, main = "Fig 14: Correlation between Variables Red Wine", mar=c(1,1,1,1))
+
+grid.arrange(fig13, fig14, ncol = 1, nrow=2)
+```
+
+```{r}
+library(stargazer)
+modvar1_red <- lm(quality ~ alcohol, data = red_lm_df)
+modvar2_red <- lm(quality ~ sulphates, data = red_lm_df)
+modvar3_red <- lm(quality ~ total.sulfur.dioxide, data = red_lm_df)
+modvar4_red <- lm(quality ~ volatile.acidity, data = red_lm_df)
+modvar5_red <- lm(quality ~ fixed.acidity, data = red_lm_df)
+modvar6_red <- lm(quality ~ citric.acid, data = red_lm_df)
+modvar7_red <- lm(quality ~ residual.sugar, data = red_lm_df)
+modvar8_red <- lm(quality ~ I(volatile.acidity / fixed.acidity), data = red_lm_df)
+modvar9_red <- lm(quality ~ chlorides, data = red_lm_df)
+modvar10_red <- lm(quality ~ I(pH/residual.sugar), data = red_lm_df)
+
+table1 <- stargazer(modvar1_red, modvar2_red, modvar3_red, modvar4_red, modvar5_red,modvar6_red, modvar7_red, modvar8_red, modvar9_red, modvar10_red, out = 'redvars.html', type = 'html', title = 'Red Wine Single Variable Models')
+
+modvar1_white <- lm(quality ~ alcohol, data = white_lm_df)
+modvar2_white <- lm(quality ~ sulphates, data = white_lm_df)
+modvar3_white <- lm(quality ~ total.sulfur.dioxide, data = white_lm_df)
+modvar4_white <- lm(quality ~ volatile.acidity, data = white_lm_df)
+modvar5_white <- lm(quality ~ fixed.acidity, data = white_lm_df)
+modvar6_white <- lm(quality ~ pH, data = white_lm_df)
+modvar7_white <- lm(quality ~ residual.sugar, data = white_lm_df)
+modvar8_white <- lm(quality ~ I(volatile.acidity/ fixed.acidity), data = white_lm_df)
+modvar9_white <- lm(quality ~ I(pH/ residual.sugar), data = white_lm_df)
+modvar10_white <- lm(quality ~ chlorides, data = white_lm_df)
+
+table2 <- stargazer(modvar1_white, modvar2_white, modvar3_white, modvar4_white, modvar5_white, modvar6_white, modvar7_white, modvar8_white, modvar9_white, modvar10_white, out = 'whitevars.html', type = 'html', title = 'White Wine Single Variable Models')
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r}
+
+mod0_red <- lm(quality ~ alcohol + sulphates, data = red_lm_df)
+mod0_white <- lm(quality ~ alcohol + sulphates, data = white_lm_df) # sulphates have no effect 
+
+mod1_red <- lm(quality ~ alcohol + pH, data = red_lm_df)
+mod1_white <- lm(quality ~ alcohol + pH, data = white_lm_df)
+
+mod2_red <- lm(quality ~ alcohol + sulphates + citric.acid, data = red_lm_df)
+mod2_white <- lm(quality ~ alcohol + pH + density, data = white_lm_df)
+
+mod3_red <- lm(quality ~ alcohol + sulphates + citric.acid, data = red_lm_df)
+mod3_white <- lm(quality ~ alcohol + pH + density + residual.sugar, data = white_lm_df)
+
+table3 <- stargazer(mod0_red, mod1_red, mod2_red, mod3_red, out = 'red_mult_mods.html', type = 'html', title = 'Red Wine Multiple Variable Models')
+table4 <- stargazer(mod0_white, mod1_white, mod2_white, mod3_white, out='white_mult_mods.html', type = 'html', title = 'White Wine Multiple Variable Models')
+
+red_lm_df$mod0_resids <- resid(mod0_red)
+red_lm_df$mod1_resids <- resid(mod1_red)
+red_lm_df$mod2_resids <- resid(mod2_red)
+
+white_lm_df$mod0_resids <- resid(mod0_white)
+white_lm_df$mod1_resids <- resid(mod1_white)
+white_lm_df$mod2_resids <- resid(mod2_white)
+white_lm_df$mod3_resids <- resid(mod3_white)
+
+summary(mod0_red)
+summary(mod0_white)
+summary(mod1_red)
+summary(mod1_white)
+summary(mod2_red)
+summary(mod2_white)
+summary(mod3_white)
+anova(mod0_red, mod1_red)
+```
+
+```{r}
+
+fig16<-ggplot(data = red_lm_df, aes(x = quality, y = alcohol)) + geom_point(color="#404080") + labs(title = "Red Wine\n Alcohol vs. Quality")
+fig17<-ggplot(data = red_lm_df, aes(x = quality, y = sulphates)) + geom_point(color="#404080")+ labs(title = "Red Wine\n Sulphates vs. Quality")
+fig18<-ggplot(data = red_lm_df, aes(x = quality, y = chlorides)) + geom_point(color="#404080")+ labs(title = "Red Wine\n Chlorides vs. Quality")
+fig19<-ggplot(data = red_lm_df, aes(x = quality, y = volatile.acidity)) + geom_point(color="#404080")+ labs(title = "Red Wine: \n Volatile Acidity \nvs. Quality")
+
+fig16_b<-ggplot(data = red_lm_df, aes(x = qual_bin, y = alcohol)) + geom_point(color="#404080") + labs(title = "Red Wine\n Alcohol vs. Binary Quality")
+fig17_b<-ggplot(data = red_lm_df, aes(x = qual_bin, y = sulphates)) + geom_point(color="#404080")+ labs(title = "Red Wine\n Sulphates vs. Binary Quality")
+fig18_b<-ggplot(data = red_lm_df, aes(x = qual_bin, y = chlorides)) + geom_point(color="#404080")+ labs(title = "Red Wine\n Chlorides vs. Binary Quality")
+fig19_b<-ggplot(data = red_lm_df, aes(x = qual_bin, y = volatile.acidity)) + geom_point(color="#404080")+ labs(title = "Red Wine \n Volatile Acidity vs. Binary Quality")
+
+fig22<-ggplot(data = white_lm_df, aes(x = quality, y = alcohol)) +geom_point(color="#69b3a2")+ labs(title = "White Wine\n Alcohol vs. Quality")
+fig23<-ggplot(data = white_lm_df, aes(x = quality, y = pH)) + geom_point(color="#69b3a2") + labs(title = "White Wine\n pH vs. Quality")
+fig24<-ggplot(data = white_lm_df, aes(x = quality, y = density)) + geom_point(color="#69b3a2")+ labs(title = "White Wine \n Density vs. Quality")
+fig25<-ggplot(data = white_lm_df, aes(x = quality, y = residual.sugar)) +geom_point(color="#69b3a2")+ labs(title = "White Wine\n Residual Sugar vs. Quality")
+fig26<-ggplot(data = white_lm_df, aes(x = quality, y = chlorides)) + geom_point(color="#69b3a2") + labs(title = "White Wine\n Chlorides vs. Quality")
+fig27<-ggplot(data = white_lm_df, aes(x = quality, y = volatile.acidity)) + geom_point(color="#69b3a2")+ labs(title = "White Wine \n Volatile Acidity vs. Quality")
+
+fig22_b<-ggplot(data = white_lm_df, aes(x = qual_bin, y = alcohol)) +geom_point(color="#69b3a2")+ labs(title = "White Wine\n Alcohol vs. \nBinary Quality")
+fig23_b<-ggplot(data = white_lm_df, aes(x = qual_bin, y = pH)) + geom_point(color="#69b3a2") + labs(title = "White Wine\n pH vs. \nBinary Quality")
+fig24_b<-ggplot(data = white_lm_df, aes(x = qual_bin, y = density)) + geom_point(color="#69b3a2")+ labs(title = "White Wine \n Density vs. \nBinary Quality")
+fig25_b<-ggplot(data = white_lm_df, aes(x = qual_bin, y = residual.sugar)) +geom_point(color="#69b3a2")+ labs(title = "White Wine\n Residual Sugar vs. \nBinary Quality")
+fig26_b<-ggplot(data = white_lm_df, aes(x = qual_bin, y = chlorides)) + geom_point(color="#69b3a2") + labs(title = "White Wine\n Chlorides vs. \nBinary Quality")
+fig27_b<-ggplot(data = white_lm_df, aes(x = qual_bin, y = volatile.acidity)) + geom_point(color="#69b3a2")+ labs(title = "White Wine \n Volatile Acidity  vs. \n Binary Quality")
+
+
+
+
+#grid.arrange(fig16, fig17, fig16_b, fig17_b, ncol = 2, nrow = 2)
+grid.arrange(fig18,fig18_b, ncol = 1, nrow = 2)
+
+#grid.arrange(fig22, fig23, fig24,fig22_b, fig23_b, fig24_b,   ncol = 3, nrow = 2)
+grid.arrange(fig26, fig26_b, ncol = 1, nrow = 2)
+```
+
+```{r}
+fig28 <- ggplot(data = white_lm_df, aes(x = qual_bin, y = I(pH/ residual.sugar)^3)) + geom_point(color="#69b3a2")+ labs(title = "Fig 28: White Wine \n Volatile/Fixed Acidity  vs. \n Binary Quality")
+fig29 <- ggplot(data = white_lm_df, aes(x = quality, y = I(pH/ residual.sugar)^3)) + geom_point(color="#69b3a2")+ labs(title = "Fig 29: White Wine \n Volatile/Fixed Acidity  vs. \n Quality")
+
+
+fig30 <- ggplot(data = white_lm_df, aes(x = qual_bin, y = I(pH/ residual.sugar)^2)) + geom_point(color="#69b3a2")+ labs(title = "Fig 30: White Wine \n Volatile/Fixed Acidity  vs. \n Binary Quality")
+fig31 <- ggplot(data = white_lm_df, aes(x = quality, y = I(pH/ residual.sugar)^2)) + geom_point(color="#69b3a2")+ labs(title = "Fig 31: White Wine \n Volatile/Fixed Acidity  vs. \n Quality")
+
+fig28
+fig29
+fig30
+fig31
+```
+
+```{r}
+library(stargazer)
+mod2_red <- lm(quality ~ alcohol + volatile.acidity, data = red_lm_df)
+mod2_white <- lm(quality ~ alcohol + volatile.acidity, data = white_lm_df)
+
+mod3_red <- lm(quality ~ alcohol + sulphates + volatile.acidity + chlorides, data = red_lm_df)
+mod3_white <- lm(quality ~ alcohol + volatile.acidity + chlorides, data = white_lm_df)
+
+mod4_red <- lm(qual_bin ~ alcohol + sulphates + volatile.acidity + chlorides, data = red_lm_df)
+mod4_white <- lm(qual_bin ~ alcohol + chlorides + volatile.acidity, data = white_lm_df)
+
+table3 <- stargazer(mod2_red, mod3_red, mod4_red, out = 'red_mult_mods.html', type = 'html', title = 'Red Wine Multiple Variable Models')
+table4 <- stargazer(mod2_white, mod3_white, mod4_white, out='white_mult_mods.html', type = 'html', title = 'White Wine Multiple Variable Models')
+```
+
+```{r}
+library(stargazer)
+
+mod1 <- lm(alcohol ~ sulphates + chlorides + pH +density  + volatile.acidity , data = white_lm_df)
+mod2 <- lm(alcohol ~ sulphates + chlorides + pH  + volatile.acidity , data = white_lm_df)
+
+mod3 <- lm(alcohol ~ sulphates + chlorides +pH +density +volatile.acidity, data = red_lm_df)
+mod4 <- lm(alcohol ~ sulphates + chlorides +pH +volatile.acidity, data = red_lm_df)
+summary(mod)
+
+summary(mod1)
+
+table_white <- stargazer(mod1, mod2, out = 'white_alcohol_mods.html', type = 'html', title = 'White Wine Multiple Variable Models')
+
+table_red <- stargazer(mod3, mod4, out = 'red_alcohol_mods.html', type = 'html', title = 'Red Wine Multiple Variable Models')
+```
+
+```{r}
+white_lm_df$chlorides2 <- white_lm_df$chlorides^2
+mod_best_white <- lm(quality ~ volatile.acidity + sulphates + alcohol + fixed.acidity + density + chlorides , data = white_lm_df)
+mod_best_white_I_1 <- lm(quality ~ volatile.acidity + sulphates + alcohol + fixed.acidity + density + chlorides2, data = white_lm_df)
+
+
+red_lm_df$chlorides2 <- red_lm_df$chlorides^2
+
+mod_best_red <- lm(quality ~ alcohol + density + sulphates + volatile.acidity + chlorides, data = red_lm_df)
+mod_best_red_I_1 <- lm(qual_bin ~ alcohol + density + sulphates + volatile.acidity + chlorides2, data = red_lm_df)
+
+table_red <- stargazer(mod_best_red, mod_best_red_I_1, out = 'red_mult_mods.html', type = 'html', title = 'Red Wine Multiple Variable Models (Quadratic Interactions) ')
+
+table_white <- stargazer(mod_best_white, mod_best_white_I_1, out = 'white_mult_mods.html', type = 'html', title = 'White Wine Multiple Variable Models Quadratic Interactions')
+
+```
+
+```{r}
+mod_best_red_I_1 <- lm(qual_bin ~ alcohol + density + I(sulphates/chlorides) + volatile.acidity, data = red_lm_df)
+mod_best_red_I_2 <- lm(qual_bin ~ I(alcohol/density) + sulphates +chlorides + volatile.acidity, data = red_lm_df)
+
+mod_best_white_I_1 <- lm(qual_bin ~ I(volatile.acidity/ fixed.acidity) + sulphates + alcohol + density + residual.sugar, data = white_lm_df)
+mod_best_white_I_2 <- lm(qual_bin ~ volatile.acidity +fixed.acidity + sulphates + I(alcohol/ density) + residual.sugar, data = white_lm_df)
+
+table_red <- stargazer(mod_best_red_b, mod_best_red_I_1, mod_best_red_I_2, out = 'red_mult_mods.html', type = 'html', title = 'Red Wine Multiple Variable Models \n Likert vs. Binart Transformation Output ')
+
+table_white <- stargazer(mod_best_white_b, mod_best_white_I_1, mod_best_white_I_2, out = 'white_mult_mods.html', type = 'html', title = 'White Wine Multiple Variable Models (Interactions)')
+```
+```{r}
+white_lm_df$predicted <- predict(mod_best_white)
+white_lm_df$model_resids <- resid(mod_best_white)
+white_lm_df$predicted_b <- predict(mod_best_white_b)
+white_lm_df$model_resids_b <- resid(mod_best_white_b)
+
+red_lm_df$predicted <- predict(mod_best_red)
+red_lm_df$model_resids <- resid(mod_best_red)
+red_lm_df$predicted_b <- predict(mod_best_red_b)
+red_lm_df$model_resids_b <- resid(mod_best_red_b)
+
+ggplot(data = white_lm_df, aes(x = predicted, y = model_resids)) + geom_point(color = "#69b3a2") + geom_smooth()
+ggplot(data = white_lm_df, aes(x = quality, y = model_resids)) + geom_point(color = "#69b3a2") + geom_smooth()
+ggplot(data = white_lm_df, aes(x = qual_bin, y = model_resids_b)) + geom_point(color = "#69b3a2") + geom_smooth()
+
+ggplot(data = red_lm_df, aes(x = predicted, y = model_resids)) + geom_point(color = "#404080") + geom_smooth()
+ggplot(data = red_lm_df, aes(x = predicted_b, y = model_resids_b)) + geom_point(color = "#404080") + geom_smooth()
+```
+
+Sulfites are naturally occurring compounds found in all wines; they act as a preservative by inhibiting microbial growth. Consuming sulfites is generally harmless, and they are found in all kinds of things, from molasses to dried fruit. But some people—especially asthmatics—can have an allergic reaction to sulfites, which is why you see the warning that wine contains sulfites. Unfortunately, folks that experience headaches or flushing after drinking wine often wrongly blame sulfites because of that warning on the label. It causes a lot of confusion. - https://www.winespectator.com/articles/difference-between-sulfites-sulfates-wine-54706
+
+
+You’re right that there aren’t any human pathogens that could stay alive in wine, but there are other concerns of spoilage bacterias and yeasts that—while they can’t make you sick—can make a wine seem off, or become fizzy. That’s where sulfur dioxide comes in. Sulfur dioxide is naturally found in wines and is a byproduct of fermentation, but most winemakers choose to add a little extra to prevent the growth of undesirable yeasts and microbes, as well as to protect against oxidation.  https://www.winespectator.com/articles/51772
+
+
+Acids are major wine constituents and contribute greatly to its taste.  In fact, acids impart the sourness or tartness that is a fundamental feature in wine taste.  Wines lacking in acid are "flat."  Chemically the acids influence titrable acidity which affects taste and pH which affects  color, stability to oxidation, and consequantly the overall lifespan of a wine.  The most abundant of these acids arise in the grapes themselves and carry over into the wine.  However, there are also some acids that arise as a result of the fermentation process from either yeast and/or bacteria.  Traditionally total acidity is divided into two groups, namely the volatile acids (see separate description)  and the nonvolatile or fixed acids. https://waterhouse.ucdavis.edu/whats-in-wine/fixed-acidity
+
+
+
+
