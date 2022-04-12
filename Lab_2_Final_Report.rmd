@@ -38,7 +38,12 @@ What are the most important attributes that create a great wine?  Do red and whi
 To perform our Exploratory Data Analysis (EDA) the team decided to run our analysis on  the red and white wine datasets separately from each other in order to better observe the qualities of both types of wines; according to our research belief that red and white wine will have different marking indicators of quality. Furthermore, to preserve the quality of the dataset for linear model building and theory testing we separated the data to 30% EDA and 70% Linear Regression. Figures 1-12 show that there is a marked difference in the quantity of each of the wine making variables recorded in the data collection phase of this study. However, we further question, is there a parallel relationship between the quality indicators for red or white wine, or are the indicator variables different? 
 
 ```{r Tables 1 and 2 from Arun}
-
+df_red$wine_type <- "red"
+df_white$wine_type <-"white"
+print("Table 1: Summary Red Wine")
+summary(df_red)
+print("Table 2: Summary White Wine")
+summary(df_white)
 ```
 
 > We were able to confirm that varieties of vinho verde wine should be treated differently and distinctly by running paired t-test across several physicochemical properties of both types.
@@ -80,6 +85,21 @@ white_lm_df <- df_white[-sample_data_white,]
 
 white_lm_df$qual_bin <- white_lm_df$quality > 6
 red_lm_df$qual_bin <- red_lm_df$quality > 6
+
+
+set.seed(87323) 
+df_red1 <- df_red[sample(1:nrow(df_red)), ]
+set.seed(87233) 
+df_white1 <- df_white[sample(1:nrow(df_white)), ] 
+
+dt_red = sort(sample(nrow(df_red1), nrow(df_red1)*.7))
+train_red<-df_red[dt_red,]
+test_red<-df_red[-dt_red,]
+
+dt_white=sort(sample(nrow(df_white1), nrow(df_white1)*.7))
+train_white<-df_white1[dt_white,]
+test_white<-df_white[-dt_white,]
+
 ```
 
 ```{r EDA}
@@ -228,12 +248,101 @@ fig13
 fig14
 ```
 
->Regression Model:
-Assumptions for Large Sample
+>Regression Model
+>Assumptions for Large Sample
 Are the assumptions of the large-sample model met so that you can use an OLS regression to produce consistent estimates? 
+Unique BLP Exists 
+
+>From the analysis of the data for train data set on red wine and white wine shows unique estimates exits for the features for the individual parameters 
+
+
 
 ```{r Tables 3 and 4 from Arun}
+model_red_all<- lm(quality ~ fixed.acidity+volatile.acidity+citric.acid+residual.sugar+chlorides+free.sulfur.dioxide+total.sulfur.dioxide+density+pH+sulphates+alcohol+volatile.acidity , data=train_red)
+model_white_all <- lm(quality ~ fixed.acidity+volatile.acidity+citric.acid+residual.sugar+chlorides+free.sulfur.dioxide+total.sulfur.dioxide+density+pH+sulphates+alcohol+volatile.acidity  , data=train_white)
+summary(model_red_all)
+summary(model_white_all)
+
+library(stargazer)
+stargazer(
+  model_red_all,
+  model_white_all,
+  type='text',title = c("Table 3: Summary of Red Wine","Table 4: Summary of White Wine"),
+  header=FALSE,
+  star.cutoffs=c(0.05,0.01,0.001)
+)
 
 ```
+>Variation in X’s 
+Table below shows the variance analysis of the data set for both the Red and White wine datasets.  From the variance statistics we can conclude that the Var in most of the feature dataset for the Red and White wine dataset is > 0.2 which should be the case for satiating the assumption for the variation in the feature dataset for the large sample assumption. For both Red and White wine variance dataset, we do see a trend with the Total Sulfur Dioxide and Free Sulfur Dioxide tends to be < 0.2 for the variance statistics, this could be due to  non normality of the both the datasets and possible tight distribution of both the features. More investigation into these features is necessary to uncover more insights.
+
+
+```{r}
+var_1 <- var.test(df_red$quality,df_red$fixed.acidity)
+var_2 <- var.test(df_red$quality,df_red$volatile.acidity)
+var_3 <- var.test(df_red$quality,df_red$citric.acid)
+var_4 <- var.test(df_red$quality,df_red$residual.sugar)
+var_5 <- var.test(df_red$quality,df_red$chlorides)
+var_6 <- var.test(df_red$quality,df_red$free.sulfur.dioxide)
+var_7 <- var.test(df_red$quality,df_red$total.sulfur.dioxide)
+var_8 <- var.test(df_red$quality,df_red$density)
+var_9 <- var.test(df_red$quality,df_red$pH)
+var_10 <- var.test(df_red$quality,df_red$sulphates)
+var_11 <- var.test(df_red$quality,df_red$alcohol)
+
+
+df_var_red <- data.frame( name=  c('Fixed Acidity', 'Volatile Acidity','Citric Acid', 'Residual Sugars', 'chlorides', 'Free Sulfur Dioxide','Total Sulfur Dioxides', 'Density','pH', 'Sulphates', 'Alcohol' ),
+                          var_stat =c(var_1$statistic,var_2$statistic,var_3$statistic,var_4$statistic,var_5$statistic,var_6$statistic,var_7$statistic,var_8$statistic,var_9$statistic,var_10$statistic,var_11$statistic))
+
+print("Table 5: Red Wine Model Variances")
+df_var_red
+
+var_12 <- var.test(df_white$quality,df_white$fixed.acidity)
+var_13 <- var.test(df_white$quality,df_white$volatile.acidity)
+var_14 <- var.test(df_white$quality,df_white$citric.acid)
+var_15 <- var.test(df_white$quality,df_white$residual.sugar)
+var_16 <- var.test(df_white$quality,df_white$chlorides)
+var_17 <- var.test(df_white$quality,df_white$free.sulfur.dioxide)
+var_18 <- var.test(df_white$quality,df_white$total.sulfur.dioxide)
+var_19 <- var.test(df_white$quality,df_white$density)
+var_20 <- var.test(df_white$quality,df_white$pH)
+var_21 <- var.test(df_white$quality,df_white$sulphates)
+var_22 <- var.test(df_white$quality,df_white$alcohol)
+
+
+
+df_var_white <- data.frame(name=  c('Fixed Acidity', 'Volatile Acidity','Citric Acid', 'Residual Sugars', 'chlorides', 'Free Sulfur Dioxide','Total Sulfur Dioxides', 'Density','pH', 'Sulphates', 'Alcohol' ),
+                           var_stat =c(var_12$statistic,var_13$statistic,var_14$statistic,var_15$statistic,var_16$statistic,var_17$statistic,var_18$statistic,var_19$statistic,var_20$statistic,var_21$statistic,var_22$statistic))
+print('Table 6: White Wine Model Variances')
+df_var_white
+```
+>Normality
+
+>A good way to analyze the normality of the dataset is to look at the qq plot, this is a visual check for the normality of the dataset, the plot shown below shows most of the features except the pH dataset does not appear to be normally distributed, there is significant effect of the outliers on all of the features which is probably pushing the dataset to deviate from normal distribution.
+
+```{r}
+
+install.packages('ggpubr')
+library(gridExtra)
+library(lattice)
+library(ggpubr)
+fig1 <- ggqqplot(df_red$fixed.acidity,title='Fig 15: Fixed Acidity QQ plot')
+fig2 <- ggqqplot(df_red$volatile.acidity,title='Fig 16: Volatile Acidity \n QQ plot')
+fig3 <- ggqqplot(df_red$citric.acid,title='Fig 17: Citric Acid QQ plot')
+fig4 <- ggqqplot(df_red$residual.sugar,title='Fig 18: Residual Sugar \n QQ plot')
+fig5 <- ggqqplot(df_red$chlorides,title='Fig 19: Chlorides QQ plot')
+fig6 <- ggqqplot(df_red$free.sulfur.dioxide,title='Fig 20: Free Sulfur Dioxide \n QQ plot')
+fig7 <- ggqqplot(df_red$total.sulfur.dioxide,title='Fig 21: Total Sulfur Dioxide \n QQ plot')
+fig8 <- ggqqplot(df_red$density,title='Fig 22: Density QQ plot')
+fig9 <- ggqqplot(df_red$pH,title='Fig 23: pH QQ plot')
+fig10 <- ggqqplot(df_red$sulphates,title='Fig 24: Sulphates QQ plot')
+fig11 <- ggqqplot(df_red$alcohol,title='Fig 25: Alcohol QQ plot')
+fig12 <- ggqqplot(df_red$quality,title='Fig 26: Quality QQ plot')
+
+grid.arrange(fig1, fig2,fig3, fig4, ncol = 2, nrow = 2)
+grid.arrange( fig5, fig6,fig7, fig8, ncol = 2, nrow = 2)
+grid.arrange( fig9, fig10, fig11,fig12, ncol = 2, nrow = 2)
+```
+
 
 
