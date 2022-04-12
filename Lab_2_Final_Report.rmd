@@ -50,6 +50,9 @@ df_wine_red_sample <- df_red[sample(nrow(df_red), 750), ]
 df_wine_white_sample <- df_white[sample(nrow(df_white), 750), ]
 
 t.test(df_wine_red_sample$fixed.acidity, df_wine_white_sample$fixed.acidity, paired=T)
+t.test(df_wine_red_sample$total.sulfur.dioxide, df_wine_white_sample$total.sulfur.dioxide, paired=T)
+t.test(df_wine_red_sample$density, df_wine_white_sample$density, paired=T)
+t.test(df_wine_red_sample$sulphates, df_wine_white_sample$sulphates, paired=T)
 ```
 
 ```{r Variable Manipulation, echo= FALSE, message = FALSE}
