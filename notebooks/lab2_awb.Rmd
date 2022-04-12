@@ -17,16 +17,15 @@ For our regression lab the Lightning Ridge team chose to analyze a wine quality 
 >What are the most important attributes that create a great wine? Can we build a model which takes the chemical profile of wine and explains the overall quality of the product? 
 
 ```{r}
-# df_wine_red <- read.delim("winequality-red.csv", header = TRUE, sep = "\t", dec = ".")
-df_wine_red <- read.delim("Data/winequality-red.csv", header = TRUE, sep = ";")
+df_wine_red <- read.delim("../data/winequality-red.csv", header = TRUE, sep = ";")
 #df_wine_red
 
-df_wine_white <- read.delim("Data/winequality-white.csv", header = TRUE, sep = ";")
+df_wine_white <- read.delim("../data/winequality-white.csv", header = TRUE, sep = ";")
 #df_wine_white
 ```
 # Approach
 
-Our first attempts to address the research questions focused on identifying relationships between attributes of a wine prepping the dataset for any types of conflicts that might undermind our regression analysis.
+Our first attempts to address the research questions focused on identifying relationships between attributes of a wine and prepping the dataset for any types of conflicts that might undermind our regression analysis.
 
 ```{r}
 summary(df_wine_red)
@@ -38,7 +37,8 @@ summary(df_wine_red)
 
 # Data Wrangling and Analysis
 
-Running some models
+
+## Linear models
 
 ```{r}
 
@@ -51,4 +51,20 @@ white_wine_model1 <- lm(quality ~ residual.sugar + citric.acid + chlorides + tot
 summary(white_wine_model1)
 ```
 
+## Comparing Red vs. White Vinho Verde
 
+
+```{r}
+
+df_wine_red_sample <- df_wine_red[sample(nrow(df_wine_red), 750), ]
+df_wine_white_sample <- df_wine_white[sample(nrow(df_wine_white), 750), ]
+
+t.test(df_wine_red_sample$fixed.acidity, df_wine_white_sample$fixed.acidity, paired=T)
+t.test(df_wine_red_sample$total.sulfur.dioxide, df_wine_white_sample$total.sulfur.dioxide, paired=T)
+t.test(df_wine_red_sample$density, df_wine_white_sample$density, paired=T)
+t.test(df_wine_red_sample$sulphates, df_wine_white_sample$sulphates, paired=T)
+
+#model_alcohol <- lm(formula = alcohol ~ volatile.acidity + chlorides + sulphates + pH + quality, data = df_wine_white)
+#summary(model_alcohol)
+
+```
