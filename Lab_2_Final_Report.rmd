@@ -21,6 +21,12 @@ library(gridExtra)
 library(stargazer)
 ```
 
+```{r Load data}
+df_red <- read.csv(file = 'data/winequality-red.csv', sep=';')
+df_white <- read.csv(file = 'data/winequality-white.csv', sep=';')
+```
+
+
 >Background: 
 >The North Western portion of Portugal has a designated region from which vinho verde originates. This region is a proud producer of wine and has taken care to aggregate a large portion of data to understand what attributes are associated with the best wines. To do this a team of researchers observed over 6,000 samples of wines taking objective sensory data about the samples chemical attributes as well as having a sommelier grade the wine on a 10-point categorical scale. The test data recorded were operationalized with sensory data as well as subjective data regarding wine quality, of which the ratings were normalized by taking the median of at least 3 evaluations made by wine experts; scaling the quality between 0 (very bad) and 10 (very excellent). As a research team we hope to explore these chemical qualities and how they can be modeling indicators for high-quality wines, to help improve the product of the Vinho Verde vineyards. 
 Through contemporary research surrounding the quality of wine, our team pre-posits the theory that quality of wine is the outcome of a system which relies on the balancing effects of different chemical properties. Therefore, we hypothesize that any one single variable will not be a strong indicator of a quality wine; rather that a system of indicators interacting together will support a better predictor of quality. Thus, our null hypothesis is that there is no one equation of physicochemical properties that will predict the quality of a bottle of wine.
@@ -35,9 +41,18 @@ To perform our Exploratory Data Analysis (EDA) the team decided to run our analy
 
 ```
 
+> We were able to confirm that varieties of vinho verde wine should be treated differently and distinctly by running paired t-test across several physicochemical properties of both types.
+
+
+```{r Paired T-Tested for White vs. Red}
+
+df_wine_red_sample <- df_red[sample(nrow(df_red), 750), ]
+df_wine_white_sample <- df_white[sample(nrow(df_white), 750), ]
+
+t.test(df_wine_red_sample$fixed.acidity, df_wine_white_sample$fixed.acidity, paired=T)
+```
+
 ```{r Variable Manipulation, echo= FALSE, message = FALSE}
-df_red <- read.csv(file = 'winequality-red.csv', sep=';')
-df_white <- read.csv(file = 'winequality-white.csv', sep=';')
 headers <- c('Fixed_Acidity', 'Volatile_Acidity','Citric_Acid', 'Residual_Sugars', 'chlorides', 'Free_Sulfur_Dioxide','Total_Sulfur_Dioxides', 'Density','pH', 'Sulphates', 'Alcohol' )
 
 df_red$Wine_Type = 'Red'
