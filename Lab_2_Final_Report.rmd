@@ -1,0 +1,221 @@
+---
+title: 'W203 Final Project: Vinho Verde Wine Quality Analysis'
+author: "Luc Robitaille, Andrew Bailey, Vish Sivakumar, Arun Sundrenath"
+date: '2022-04-12'
+output: pdf_document
+---
+
+```{r load packages, echo=FALSE, message=FALSE}
+
+install.packages('lmtest')
+install.packages('patchwork')
+install.packages('sandwich')
+install.packages('stargazer')
+library(tidyverse)
+library(magrittr)
+library(ggplot2)
+library(patchwork)
+library(sandwich)
+library(lmtest)
+library(gridExtra)
+library(stargazer)
+```
+
+>Background: 
+>The North Western portion of Portugal has a designated region from which vinho verde originates. This region is a proud producer of wine and has taken care to aggregate a large portion of data to understand what attributes are associated with the best wines. To do this a team of researchers observed over 6,000 samples of wines taking objective sensory data about the samples chemical attributes as well as having a sommelier grade the wine on a 10-point categorical scale. The test data recorded were operationalized with sensory data as well as subjective data regarding wine quality, of which the ratings were normalized by taking the median of at least 3 evaluations made by wine experts; scaling the quality between 0 (very bad) and 10 (very excellent). As a research team we hope to explore these chemical qualities and how they can be modeling indicators for high-quality wines, to help improve the product of the Vinho Verde vineyards. 
+Through contemporary research surrounding the quality of wine, our team pre-posits the theory that quality of wine is the outcome of a system which relies on the balancing effects of different chemical properties. Therefore, we hypothesize that any one single variable will not be a strong indicator of a quality wine; rather that a system of indicators interacting together will support a better predictor of quality. Thus, our null hypothesis is that there is no one equation of physicochemical properties that will predict the quality of a bottle of wine.
+
+> Research Question: 
+What are the most important attributes that create a great wine?  Do red and white wines have different markers of great quality? Can we build a model which takes the chemical profile of wine and explains the overall quality of the product? 
+
+>Explanatory Data Analysis:
+To perform our Exploratory Data Analysis (EDA) the team decided to run our analysis on  the red and white wine datasets separately from each other in order to better observe the qualities of both types of wines; according to our research belief that red and white wine will have different marking indicators of quality. Furthermore, to preserve the quality of the dataset for linear model building and theory testing we separated the data to 30% EDA and 70% Linear Regression. Figures 1-12 show that there is a marked difference in the quantity of each of the wine making variables recorded in the data collection phase of this study. However, we further question, is there a parallel relationship between the quality indicators for red or white wine, or are the indicator variables different? 
+
+```{r Tables 1 and 2 from Arun}
+
+```
+
+```{r Variable Manipulation, echo= FALSE, message = FALSE}
+df_red <- read.csv(file = 'winequality-red.csv', sep=';')
+df_white <- read.csv(file = 'winequality-white.csv', sep=';')
+headers <- c('Fixed_Acidity', 'Volatile_Acidity','Citric_Acid', 'Residual_Sugars', 'chlorides', 'Free_Sulfur_Dioxide','Total_Sulfur_Dioxides', 'Density','pH', 'Sulphates', 'Alcohol' )
+
+df_red$Wine_Type = 'Red'
+df_white$Wine_Type = 'White'
+
+all_wine = rbind(df_red, df_white)
+
+#Separate Random Samples for EDA
+y <- 0.30 * nrow(df_white)
+x <- 0.30 * nrow(df_red)
+sample_data_white <- sample(nrow(df_white), y, replace = FALSE)
+sample_data_red <- sample(nrow(df_red),x, replace = FALSE)
+
+red_eda_df <- df_red[sample_data_red, ]
+white_eda_df <- df_white[sample_data_white, ]
+
+white_eda_df$qual_bin <- white_eda_df$quality > 6
+red_eda_df$qual_bin <- red_eda_df$quality > 6
+
+red_lm_df <- df_red[-sample_data_red,]
+white_lm_df <- df_white[-sample_data_white,]
+
+white_lm_df$qual_bin <- white_lm_df$quality > 6
+red_lm_df$qual_bin <- red_lm_df$quality > 6
+```
+
+```{r EDA}
+summary(all_wine)
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$fixed.acidity, red_eda_df$fixed.acidity))
+
+fig1 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 1: Red And White \n Distribution of Fixed Acidity \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$volatile.acidity, red_eda_df$volatile.acidity))
+
+fig2 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 2: Red And White \n Distribution of Volatile Acidity \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$citric.acid, red_eda_df$citric.acid))
+
+fig3 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 3: Red And White \n Distribution of Citric Acid \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$residual.sugar, red_eda_df$residual.sugar))
+
+fig4 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 4: Red And White \n Distribution of Residual Sugar \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$chlorides, red_eda_df$chlorides))
+
+fig5 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 5: Red And White \n Distribution of Chlorides \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c(white_eda_df$free.sulfur.dioxide, red_eda_df$free.sulfur.dioxide))
+
+fig6 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 6: Red And White \n Distribution of Free Sulfur Dioxide \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$total.sulfur.dioxide, red_eda_df$total.sulfur.dioxide))
+
+fig7 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 7: Red And White \n Distribution of Total Sulfur Dioxide \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$pH, red_eda_df$pH))
+
+fig8 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 8: Red And White \n Distribution of pH \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$density, red_eda_df$density))
+
+fig9 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 9: Red And White \n Distribution of Density \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$sulphates, red_eda_df$sulphates))
+
+fig10 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 10: Red And White \n Distribution of Sulphates \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$alcohol, red_eda_df$alcohol))
+
+fig11 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig11: Red And White \n Distribution of Alcohol \n 30% Random Sample EDA")
+
+d <- data.frame(
+  type = c( white_eda_df$Wine_Type, red_eda_df$Wine_Type),
+  value = c( white_eda_df$quality, red_eda_df$quality))
+
+fig12 <- ggplot(data = d, aes(x=value, fill = type)) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#404080", "#69b3a2")) + 
+  labs(title = "Fig 12: Red And White \n Distribution of Quality \n 30% Random Sample EDA")
+
+
+grid.arrange(fig1, fig2,fig3, fig4, ncol = 2, nrow = 2)
+grid.arrange(fig5, fig6, fig7, fig8, ncol = 2, nrow = 2)
+grid.arrange(fig9, fig10, fig11, fig12, ncol = 2, nrow = 2)
+```
+> By looking at the distribution of individual physicochemical properties of the different varieties of vinho verde wine, we then confirmed with a t-test that there were significant differences between the varieties and they should be modeled differently.
+
+>Given that the datasets we are studying are very large we will pursue a linear model under the Large Sample framework. In accordance with this framework we will model around variables which approach a normal distribution, have low correlations with other variables, and have a linear relationship with our outcome variable, quality. From our initial EDA, our dataset appears to have i.i.d underpinnings, with variables generally approaching a normal distribution. 
+
+>Independent, identically distributed (i.i.d) data is an assumption of our dataset that will support the Central Limit Theorem (CLM), which is a statistical theorem of large datasets which will produce powerful properties for our linear regression models. An important piece of proving i.i.d is examining experimental theory and operationalization. In the case of this data set our chemical variables are all independent from another wine’s same variable measurement; e.g.  the measurement of one wine’s acidity will not influence the acidity of another wine. For our outcome variable, Quality, the score is operationalized by taking the median of three independent sommelier’s ratings (ordinal,  1-10 scale). The effect of taking a median between three independent ratings helps to decrease the effect of bias in any of the ratings which supports the i.i.d assumptions. Additionally, the i.i.d assumption requires that each data-point comes from one underlying distribution. In the case of our dataset, the data is pulled from a large sample of wines all from the Vinho Verde region of portugal. The central location of these entries provides a common distribution for all of the properties of the various wines. However, this reduces the generalizability of our results to mostly just wines in the Vinho Verde region of Portugal. 
+
+>A final EDA check which is important to perform is the independence of individual variables relative to each other across the dataset. Figures 13 and 14 demonstrate that we have a reasonable amount of differentiation from each other to perform our linear regression analysis. 
+
+```{r Correlation Plot for EDA}
+install.packages('corrplot')
+library(corrplot)
+
+
+all_numeric_vals_white = subset(white_eda_df,select=-c(Wine_Type))
+cor_tab_white <- cor(all_numeric_vals_white)
+round(cor_tab_white, 2)
+
+fig13 <- corrplot(cor_tab_white, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, main = "Fig 13: Correlation between Variables White Wine", mar=c(1,1,1,1))
+
+all_numeric_vals_red = subset(red_eda_df,select=-c(Wine_Type))
+cor_tab_red <- cor(all_numeric_vals_red)
+round(cor_tab_red, 2)
+
+fig14 <- corrplot(cor_tab_red, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, main = "Fig 14: Correlation between Variables Red Wine", mar=c(1,1,1,1))
+
+fig13
+fig14
+```
+
+>Regression Model:
+Assumptions for Large Sample
+Are the assumptions of the large-sample model met so that you can use an OLS regression to produce consistent estimates? 
+
+```{r Tables 3 and 4 from Arun}
+
+```
+
+
