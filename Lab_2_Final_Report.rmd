@@ -526,6 +526,58 @@ anova(model_red_all,model_red_i ,test='F')
 >Anova Test for selecting the best model
 From the anova table for the red wine dataset, it shows the second model which is the more refined model with removing non significant terms does show to be a more significant model compared to the model with all the terms. This holds true for white wine data sets too. Based on this analysis we can conclude that for good quality Red wine we want less of volatile acidity, chlorides and more of sulfates and alcohol. Whereas for white wine for a high quality wine we would want less of volatile acidity and fixed acidity components and more of sulfates and alcohol concentration. Though this is an oversimplification of how good a wine is, one could generalize in terms of these chemical components from the given dataset.
 
+```{r}
+#Alternative methods - Binomial Logistic Regression model
+
+#Red wine Logistic Regression
+df_red$quality_ind<-0
+df_red$quality_ind[df_red$quality>6]<-1
+
+model_red_logit <- glm(formula = quality_ind ~ 
+                  `fixed.acidity` 
+                + `volatile.acidity` 
+                #+ `citric.acid`
+                + `residual.sugar`
+                + chlorides
+                #+ `free.sulfur.dioxide`
+                + `total.sulfur.dioxide`
+                + density
+                #+ pH
+                + sulphates
+                + alcohol 
+                , data = df_red, family = binomial)
+
+summary(model_red_logit)
+
+```
+>Logistic regression models are generally benchmarked using AIC (Akaike Information Criterian) or BIC (Bayesian Information Criterian)
+The logit model for red wine yields a pretty high AIC of 890
+
+```{r}
+#White wine Logistic Regression
+df_white$quality_ind<-0
+df_white$quality_ind[df_white$quality>6]<-1
+
+model_white_logit <- glm(formula = quality_ind ~ 
+                  `fixed.acidity` 
+                + `volatile.acidity` 
+                #+ `citric.acid`
+                + `residual.sugar`
+                + chlorides
+                + `free.sulfur.dioxide`
+                #+ `total.sulfur.dioxide`
+                + density
+                + pH
+                + sulphates
+                #+ alcohol 
+                , data = df_white, family = binomial)
+
+summary(model_white_logit)
+
+```
+>The logit model for white wine yields an evenworse AIC of 4165
+Given that this attempt at an alternative model is out of the covered content in the course and because model performance was sub-par based on our existing knowledge, we decided not to delve further into this approach.
+
 
 >Omitted Variables: 
 
