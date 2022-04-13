@@ -12,6 +12,8 @@ install.packages('patchwork')
 install.packages('sandwich')
 install.packages('stargazer')
 install.packages('gt')
+install.packages('corrplot')
+library(corrplot)
 library(tidyverse)
 library(magrittr)
 library(ggplot2)
@@ -228,18 +230,14 @@ grid.arrange(fig9, fig10, fig11, fig12, ncol = 2, nrow = 2)
 >A final EDA check which is important to perform is the independence of individual variables relative to each other across the dataset. Figures 13 and 14 demonstrate that we have a reasonable amount of differentiation from each other to perform our linear regression analysis. 
 
 ```{r Correlation Plot for EDA}
-install.packages('corrplot')
-library(corrplot)
-
-
-all_numeric_vals_white = subset(white_eda_df,select=-c(Wine_Type))
+all_numeric_vals_white = subset(white_eda_df,select=-c(Wine_Type,qual_bin,wine_type))
 cor_tab_white <- cor(all_numeric_vals_white)
 round(cor_tab_white, 2)
 
 fig13 <- corrplot(cor_tab_white, type = "upper", order = "hclust", 
          tl.col = "black", tl.srt = 45, main = "Fig 13: Correlation between Variables White Wine", mar=c(1,1,1,1))
 
-all_numeric_vals_red = subset(red_eda_df,select=-c(Wine_Type))
+all_numeric_vals_red = subset(red_eda_df,select=-c(Wine_Type,qual_bin,wine_type))
 cor_tab_red <- cor(all_numeric_vals_red)
 round(cor_tab_red, 2)
 
@@ -249,6 +247,7 @@ fig14 <- corrplot(cor_tab_red, type = "upper", order = "hclust",
 fig13
 fig14
 ```
+
 
 >Regression Model
 >Assumptions for Large Sample
