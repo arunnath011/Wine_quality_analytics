@@ -321,6 +321,9 @@ gt(df_var_white,rowname_col = df_var_white$name)
 
 >A good way to analyze the normality of the dataset is to look at the qq plot, this is a visual check for the normality of the dataset, the plot shown below shows most of the features except the pH dataset does not appear to be normally distributed, there is significant effect of the outliers on all of the features which is probably pushing the dataset to deviate from normal distribution.
 
+
+
+
 ```{r}
 
 install.packages('ggpubr')
@@ -348,9 +351,180 @@ grid.arrange( fig9, fig10, fig11,fig12, ncol = 2, nrow = 2)
 >IID
 >Best way to check for IID is to look at correlation analysis between the features for the dataset, in this case we will refer to the EDA correlation of analysis of the dataset from Red wine and White Wine. Based on the analysis, the majority of the data features seem to be IID, except for pH and fixed acidity which demonstrate negative correlation. 
 
-```{r tables7 and 8 from Arun}
+>Linear Regression Analysis 
+Linear regression methodology for this dataset will be made based on the findings from the large sample assumptions. In general we will divide the analysis into the following parts to make the model creation part to be more systematic. Model fitting will be carried out on a randomly separated regression data set, which has been separated out from the exploratory dataset.  Overall, we are using 70% of the total dataset for building the model and 30% for utilizing in the test (theory) phase.
+1.)General model with all the features to understand significant effects
+2.)Stepwise removing the features which are not able explain the total variance in the quality variable for both wine dataset
+3.)Understanding the effect of transformation on the X’s to improve the model parameters and explain the variance 
+4.)Any possible effect of interaction between the significant variables for either dataset
+5.)Utilizing the most appropriate model to predict the dataset for both Red and White wine datasets
+
+
+#Linear model for Red and White wine
+```{r}
+
+model_red_all<- lm(quality ~ fixed.acidity+volatile.acidity+citric.acid+residual.sugar+chlorides+free.sulfur.dioxide+total.sulfur.dioxide+density+pH+sulphates+alcohol+volatile.acidity , data=df_red)
+model_white_all <- lm(quality ~ fixed.acidity+volatile.acidity+citric.acid+residual.sugar+chlorides+free.sulfur.dioxide+total.sulfur.dioxide+density+pH+sulphates+alcohol+volatile.acidity  , data=df_white)
+summary(model_red_all)
+summary(model_white_all)
+
+library(stargazer)
+stargazer(
+  model_red_all,
+  model_white_all,
+  type='text',title = c("Summary of Red and Whites Wine"),
+  header=FALSE,font.size = "huge",
+  star.cutoffs=c(0.05,0.01,0.001)
+)
 
 ```
+
+
+>Model Summary:
+For the initial regression model build we regress on all of the indicator variables in an attempt to understand the significance of each of the features. From the linear regression model below the main conclusions are  
+1.) overall the linear model is poor at explaining the variance in quality, with R2 adj. Only at 34.3%. 
+2.) variables such as fixed acidity, citric acid, residual sugar,  free Sulfur Dioxide, density, pH show insignificant influence on explaining the variance in red wine quality. We will pursue variable transformation in later models to understand if these variables display higher significance. 
+3.) for significant variables: chlorides, sulfates, alcohol, total sulfur dioxide and volatile acidity are statistically significant at explaining the variance in red wine quality.
+4.) Based on the linear estimate,  Volatile acidity seems to have an overall negative effect on the quality of the wine, for Ceteris paribus every  one unit change in volatile acidity, it decreases the overall Red  wine quality by  -1.1 units. The same feature seems to have a slightly higher effect in the case of White wine, as the estimate is at -1.8, suggesting higher impact of the white wine quality over the amounts of volatile acidity of the wine. 
+5.) Residual sugar is a significant variable for white wine with a much lower estimate of 0.102 compared to Red wine; the variable is not significant at all. 
+6.) Effect of chlorides is significant with Red wine compared to white wine, as Red wine has a liner estimate at -1.6 suggesting the overall quality of the Red wine is significantly influenced by the presence of chlorides, and for every 1 unit of chloride present it reduces the overall wine score by -1.6 units with all being equal.
+7.) Free sulfur dioxide is a significant variable with White wine, but its overall effect is much lower at estimate of -0.003, for Red wine this variable is shown to be not a significant effect on measuring the quality of the wine. Total sulfur dioxide seems to have the exact opposite effect of free sulfur dioxide on Red wine as this variable is significant but its effect on the overall quality is negligibly small.
+8.) Density has a significant higher estimate for Red wine compared to White wine, the overall std. Error is also quite high. This could be an effect of the distribution or an effect of outlier on the overall model, we may need to remove some of the outliers for white wine to completely understand its effect. 
+9.) pH is measure of the amount of H+ ions in the solution, so far we have seen significance from variables such as fixed acidity ( it's the measure of the acidity of the wine), Volatile acidity( it's the volatile organic acid components, probably the by product of fermenting process), in case of white wine, pH is a significant variable and  has a higher estimate for its estimator at 0.83, suggesting higher pH white wine tends to score higher in overall quality of the White wine.
+
+
+
+#Linear model for Red  and White Wine Model1 Residual analysis
+```{r}
+print("Formal Test of Residual Normality- Red Wine")
+set.seed(56423)
+shapiro.test(sample(model_red_all$residuals,size=5000,replace = TRUE))
+qqnorm(model_red_all$residuals)
+par(mfrow=c(2,2))
+plot(model_red_all)
+
+print("Formal Test of Residual Normality- White Wine")
+set.seed(56423)
+shapiro.test(sample(model_white_all$residuals,size=5000,replace = TRUE))
+qqnorm(model_white_all$residuals)
+par(mfrow=c(2,2))
+plot(model_white_all)
+```
+>Residual Analysis for Model:
+Residual analysis for the both the Red and White wines train only data suggests the model fitted isn't good at explaining the large variance seen in the quality feature, and the residual Vs fitted does have a significant dispersion away from 0, this could be due to several factors such as 
+1.)Overall data suggests there is a linear relationship between quality and the X’s, it seems to suggest the model might be more effective at fu
+2.)Likert scale effect of the quality variable, we do see the same effect on the QQ plot for quality which suggest our Y variable is not continuous but more like a Likert scale
+3.)The QQ plot of the residuals suggests they are not normally distributed 
+4.)Residual Vs leverage data shows some points having significant effect on the overall quality variable, this could be due to outliers in the dataset. 
+5.)Overall the residual and model summary analysis is very similar for both Red and White wine dataset
+Next steps in the model would be to understand the inflation factor or VIF for both the models to better understand if adding all 12 X variables has an effect on the inflationary effect of certain variables.
+Next steps in the model would be to understand the inflation factor or VIF for both the models to better understand if adding all 12 X variables has an effect on the inflationary effect of certain variables.
+
+
+#Linear model for Red and White Wine-Model1 VIF analysis
+```{r}
+#create vector of VIF values
+library(car)
+vif_values <- vif(model_red_all)
+
+#create horizontal bar chart to display each VIF value
+par(mar=c(5,6,4,1)+2)
+barplot(vif_values, main = "VIF Values Red Wine", horiz = TRUE, col = "steelblue",
+        axes=TRUE, cex.names=1, las=1)
+
+#add vertical line at 5
+abline(v = 5, lwd = 3, lty = 2)
+
+vif_values_w <- vif(model_white_all)
+
+#create horizontal bar chart to display each VIF value
+par(mar=c(5,6,4,1)+2)
+barplot(vif_values_w, main = "VIF Values White Wine", horiz = TRUE, col = "steelblue",
+        axes=TRUE, cex.names=1, las=1)
+
+#add vertical line at 5
+abline(v = 5, lwd = 3, lty = 2)
+```
+>Variance Inflation Factor(VIF) analysis:
+Variance Inflation Factor(VIF) analysis for both Red and Wine models shows the density to have a significant inflatory effect for both types of wine, in general a VIF value of <10 is considered acceptable and <5 is nominal. VIF is also an indicator of the collinearity of the variables, the above graph suggests significant collinearity with variables such as density, residual sugar.
+The first explanatory mode needs more improvements for both Red and White dataset and we will be exploring the effect of removing some of the insignificant variables and effect of transformation on the new models.
+
+
+
+# Improved model for Red Wine
+```{r}
+model_red_i <- lm(quality ~ volatile.acidity+chlorides+sulphates+alcohol, data=df_red)
+summary(model_red_i)
+par(mfrow=c(2,2))
+plot(model_red_i)
+
+```
+
+
+
+# Improved model for White Wine
+```{r}
+model_white_i <- lm(quality ~ volatile.acidity+sulphates+alcohol+residual.sugar+fixed.acidity
+                    , data=df_white)
+summary(model_white_i)
+par(mfrow=c(2,2))
+plot(model_white_i)
+
+```
+
+#Comparison beween the models for Red and White Wine
+```{r}
+library(stargazer)
+stargazer(
+  model_red_i,
+  model_white_i,
+  type='text',title = c("Summary of Red and White Wine Model"),
+  header=TRUE,font.size = "huge",
+  star.cutoffs=c(0.05,0.01,0.001)
+)
+
+```
+
+
+
+# VIF analysis for the refined model
+```{r}
+vif_values_r <- vif(model_red_i)
+
+#create horizontal bar chart to display each VIF value
+par(mar=c(5,6,4,1)+2)
+barplot(vif_values_r, main = "VIF Values Red Wine", horiz = TRUE, col = "steelblue",
+        axes=TRUE, cex.names=1, las=1)
+
+#add vertical line at 5
+abline(v = 5, lwd = 3, lty = 2)
+
+vif_values_w_i <- vif(model_white_i)
+
+#create horizontal bar chart to display each VIF value
+par(mar=c(5,6,4,1)+2)
+barplot(vif_values_w_i, main = "VIF Values White Wine", horiz = TRUE, col = "steelblue",
+        axes=TRUE, cex.names=1, las=1)
+
+#add vertical line at 5
+abline(v = 5, lwd = 3, lty = 2)
+```
+>Linear modeling - Improved Modeling Parameters
+1.)Overall R2 adj for both Red and White wine is still quite low suggesting the linear model suggested is not fully capable of explaining the variance seen with the quality of the wine.
+2.)The values of significant estimators haven't changed significantly, this is a good indication that we have a unique BLP for each of the parameters, which satisfies the large sample assumptions for linear regression.
+3.)Residual analysis for the new model shows similar trend between the fitted value and the residuals, the dispersion observed in the residual is an indication of the likert like scale effect of the quality parameter for both Red and White wine
+4.)Removing variable such as density and residual sugar, shows improvement in the VIF, which is a good indicator of collinearity of the dataset, it seems with the new model we don't observe as much collinearity as the previous model
+
+
+#Anova analysis of the models
+```{r}
+anova(model_red_all,model_red_i ,test='F')
+ anova(model_white_all,model_white_i ,test='F')
+
+```
+
+>Anova Test for selecting the best model
+From the anova table for the red wine dataset, it shows the second model which is the more refined model with removing non significant terms does show to be a more significant model compared to the model with all the terms. This holds true for white wine data sets too. Based on this analysis we can conclude that for good quality Red wine we want less of volatile acidity, chlorides and more of sulfates and alcohol. Whereas for white wine for a high quality wine we would want less of volatile acidity and fixed acidity components and more of sulfates and alcohol concentration. Though this is an oversimplification of how good a wine is, one could generalize in terms of these chemical components from the given dataset.
 
 
 >Omitted Variables: 
